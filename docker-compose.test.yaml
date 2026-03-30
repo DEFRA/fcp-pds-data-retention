@@ -2,11 +2,11 @@
 # that test output is saved to the host
 
 services:
-  ffc-template-node:
+  fcp-pds-data-retention:
     build:
       target: development
-    image: ffc-template-node-development
-    container_name: ffc-template-node-test
+    image: fcp-pds-data-retention-development
+    container_name: fcp-pds-data-retention-test
     command: npm run test
     volumes:
       - ./app:/home/node/app

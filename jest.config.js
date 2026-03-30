@@ -7,7 +7,8 @@ const config = {
   coverageDirectory: 'test-output',
   coverageReporters: [
     'text-summary',
-    'lcov'
+    'lcov',
+    'cobertura'
   ],
   coveragePathIgnorePatterns: [
     '<rootDir>/node_modules/',

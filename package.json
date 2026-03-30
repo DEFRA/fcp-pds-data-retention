@@ -1,48 +1,41 @@
 {
-  "name": "ffc-template-node",
+  "name": "fcp-pds-data-retention",
   "version": "0.1.0",
-  "description": "description-of-project-goes-here",
-  "homepage": "https://github.com/DEFRA/ffc-template-node",
+  "description": "Payment & Document Services shared data retention processing capabilities",
+  "homepage": "https://github.com/DEFRA/fcp-pds-data-retention",
   "main": "app/index.js",
   "type": "module",
   "scripts": {
     "pretest": "npm run test:lint",
     "test": "jest --runInBand --forceExit",
     "test:watch": "jest --coverage=false --onlyChanged --watch --runInBand",
-    "test:lint": "standard",
+    "test:unit": "jest --testPathPattern=test/unit --coverage=false",
+    "test:lint": "eslint",
+    "test:lint:fix": "eslint --fix",
     "test:debug": "node --inspect-brk=0.0.0.0 ./node_modules/jest/bin/jest.js --coverage=false --onlyChanged --watch --runInBand --no-cache",
     "start:watch": "nodemon --inspect=0.0.0.0 --ext js --legacy-watch app/index.js",
     "start:debug": "nodemon --inspect-brk=0.0.0.0 --ext js --legacy-watch app/index.js"
   },
   "author": "Defra",
-  "contributors": [],
+  "contributors": [
+    "Sam Plackett samuel.plackett@atos.net"
+  ],
   "license": "OGL-UK-3.0",
   "dependencies": {
     "@hapi/hapi": "21.3.2",
-    "applicationinsights": "2.9.1",
-    "convict": "6.2.4",
+    "applicationinsights": "2.9.8",
+    "convict": "6.2.5",
     "convict-format-with-validator": "6.2.0",
     "hapi-pino": "12.1.0",
     "joi": "17.13.3",
     "log-timestamp": "0.3.0"
   },
   "devDependencies": {
+    "eslint": "^9.39.4",
     "jest": "29.7.0",
     "jest-junit": "16.0.0",
-    "nodemon": "3.0.1",
-    "standard": "17.1.0"
-  },
-  "standard": {
-    "globals": [
-      "describe",
-      "beforeEach",
-      "expect",
-      "test",
-      "afterEach",
-      "jest",
-      "beforeAll",
-      "afterAll"
-    ]
+    "neostandard": "0.13.0",
+    "nodemon": "3.0.1"
   },
   "nodemonConfig": {
     "ignore": [
