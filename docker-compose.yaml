@@ -4,7 +4,43 @@ services:
       context: .
       target: production
     image: fcp-pds-data-retention
+    ports:
+      - "3017:3017"
+      - "9274:9229"
     container_name: fcp-pds-data-retention
+    depends_on:
+      - fcp-pds-data-retention-postgres
+      - fcp-pds-data-retention-azurite
     environment:
       APPINSIGHTS_CLOUDROLE: fcp-pds-data-retention-local
       APPINSIGHTS_CONNECTIONSTRING: ${APPINSIGHTS_CONNECTIONSTRING}
+      PROCESSING_ACTIVE: ${PROCESSING_ACTIVE:-true}
+      POLLING_INTERVAL: ${POLLING_INTERVAL:-3600000}
+      AZURE_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://ffc-pay-batch-azurite:10000/devstoreaccount1;
+      AZURE_STORAGE_ACCOUNT_NAME: ${AZURE_STORAGE_ACCOUNT_NAME:-devstoreaccount1}
+      AZURE_STORAGE_USE_CONNECTION_STRING: "true"
+      AZURE_STORAGE_CREATE_CONTAINERS: "true"
+      MESSAGE_QUEUE_HOST: ${MESSAGE_QUEUE_HOST}
+      MESSAGE_QUEUE_USER: ${MESSAGE_QUEUE_USER}
+      MESSAGE_QUEUE_PASSWORD: ${MESSAGE_QUEUE_PASSWORD}
+      EVENTS_TOPIC_ADDRESS: ${EVENTS_TOPIC_ADDRESS:-ffc-pay-events}${MESSAGE_QUEUE_SUFFIX}
+      RETENTION_TOPIC_ADDRESS: ${RETENTION_TOPIC_ADDRESS:-fcp-pds-data-retention}${MESSAGE_QUEUE_SUFFIX}
+      POSTGRES_DB: fcp_pds_data_retention
+      POSTGRES_HOST: ${POSTGRES_HOST:-fcp-pds-data-retention-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_SCHEMA_PASSWORD:-ppp}
+      POSTGRES_PORT: 5432
+      POSTGRES_SCHEMA_NAME: ${POSTGRES_SCHEMA_NAME:-public}
+      POSTGRES_USERNAME: ${POSTGRES_SCHEMA_USERNAME:-postgres}
+
+  fcp-pds-data-retention-postgres:
+    image: postgres:11.4-alpine
+    environment:
+      POSTGRES_DB: fcp_pds_data_retention
+      POSTGRES_PASSWORD: ppp
+      POSTGRES_USERNAME: postgres
+
+  fcp-pds-data-retention-azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.35.0
+    command: "azurite-blob --loose --blobHost 0.0.0.0"
+    labels:
+      com.docker.compose.pds.role: fcp-pds-data-retention-azurite

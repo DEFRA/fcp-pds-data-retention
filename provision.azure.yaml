@@ -1,8 +1,16 @@
 resources:
   identity: fcp-pds-data-retention
+  postgreSql:
+    name: fcp-pds-data-retention
   service_bus:
     topics:
-      - name: fcp-pds-retention-data
+      - name: fcp-pds-data-retention
+        defaultMessageTimeToLive: P3650D
+        duplicateDetectionHistoryTimeWindow: PT10M30S
+        requiresDuplicateDetection: true
+        roles: 
+        - name: sender
+      - name: ffc-pay-events
         defaultMessageTimeToLive: P3650D
         duplicateDetectionHistoryTimeWindow: PT10M30S
         requiresDuplicateDetection: true

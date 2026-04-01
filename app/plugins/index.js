@@ -1,7 +1,7 @@
 import logging from './logging.js'
 import router from './router.js'
 
-async function registerPlugins (server) {
+const registerPlugins = async (server) => {
   const plugins = [
     logging,
     router
@@ -10,4 +10,6 @@ async function registerPlugins (server) {
   await server.register(plugins)
 }
 
-export { registerPlugins }
+export {
+  registerPlugins
+}

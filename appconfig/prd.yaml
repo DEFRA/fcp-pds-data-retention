@@ -1,1 +1,24 @@
 ---
+environment: production
+environmentCode: prd
+container:
+  azureStorageConnectionString: dummy
+  azureStorageAccountName: prdffcdocst1001
+  azureStorageUseConnectionString: false
+  azureStorageCreateContainers: false
+  messageQueueHost: PRDFFCINFSB1001.servicebus.windows.net
+  retentionTopicAddress: fcp-pds-data-retention
+  eventsTopicAddress: ffc-pay-events
+secretProviderClass:
+  azure:
+    keyvaultName: PRDFFCINFKV1001
+    objects:
+      - objectName: prd-ffcahwr-appInsights-connectionString
+        objectType: secret
+
+  secretObjects:
+    - secretName: ffc-pay-batch-processor
+      type: Opaque
+      data:
+        - objectName: prd-ffcahwr-appInsights-connectionString
+          key: APPINSIGHTS_CONNECTIONSTRING

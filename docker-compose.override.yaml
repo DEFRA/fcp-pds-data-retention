@@ -15,8 +15,28 @@ services:
       - ./package.json:/home/node/package.json
     networks:
       - fcp-pds-data-retention
+    environment:
+      AZURE_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://ffc-pay-batch-azurite:10000/devstoreaccount1;
+    depends_on:
+      - fcp-pds-data-retention-azurite
+
+  fcp-pds-data-retention-azurite:
+    volumes:
+      - azurite_data:/data
+    ports:
+      - "10008:10000"
+
+  fcp-pds-data-retention-postgres:
+    ports:
+      - "5490:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
 networks:
   fcp-pds-data-retention:
     name: fcp-pds-data-retention
     driver: bridge
+
+volumes:
+  azurite_data:
+  postgres_data:

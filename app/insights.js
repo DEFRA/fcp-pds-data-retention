@@ -1,6 +1,6 @@
 import appInsights from 'applicationinsights'
 
-function setup () {
+const setup = () => {
   if (process.env.APPINSIGHTS_CONNECTIONSTRING) {
     appInsights.setup(process.env.APPINSIGHTS_CONNECTIONSTRING).start()
     console.log('App Insights running')
@@ -12,4 +12,6 @@ function setup () {
   }
 }
 
-export { setup }
+export {
+  setup
+}

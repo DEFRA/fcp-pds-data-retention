@@ -1,1 +1,11 @@
 ---
+environment: production
+environmentCode: snd2
+container:
+  azureStorageConnectionString: dummy
+  azureStorageAccountName: snd2ffcdocst2001
+  azureStorageUseConnectionString: false
+  azureStorageCreateContainers: false
+  messageQueueHost: SNDFFCINFSB2001.servicebus.windows.net
+  retentionTopicAddress: fcp-pds-data-retention
+  eventsTopicAddress: ffc-pay-events

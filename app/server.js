@@ -3,7 +3,7 @@ import Joi from 'joi'
 import { registerPlugins } from './plugins/index.js'
 import config from './config.js'
 
-async function createServer () {
+const createServer = async () => {
   const server = Hapi.server({
     host: config.get('host'),
     port: config.get('port'),
@@ -25,4 +25,6 @@ async function createServer () {
   return server
 }
 
-export { createServer }
+export {
+  createServer
+}
