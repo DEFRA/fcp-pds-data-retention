@@ -1,4 +1,5 @@
 const sendRetentionDataInvalidEvents = require('../event/send-retention-data-invalid-events')
+const { saveValidRetentionData } = require('./save-valid-retention-data')
 
 const handleParsedRetentionData = async (parsedRetentionData) => {
   try {

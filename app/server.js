@@ -1,7 +1,7 @@
 import Hapi from '@hapi/hapi'
 import Joi from 'joi'
 import { registerPlugins } from './plugins/index.js'
-import config from './config.js'
+import config from './server-config.js'
 
 const createServer = async () => {
   const server = Hapi.server({
