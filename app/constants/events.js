@@ -1,3 +1,4 @@
 module.exports = {
-  RETENTION_DATA_REJECTED: 'uk.gov.defra.fcp.pds.warning.retention.data.rejected'
+  RETENTION_DATA_EXPIRED: 'uk.gov.defra.fcp.pds.retention.data.expired',
+  RETENTION_DATA_REJECTED: 'uk.gov.defra.fcp.pds.retention.data.rejected'
 }

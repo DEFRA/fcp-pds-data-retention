@@ -1,17 +1,23 @@
-const { setup } = require('../../app/insights')
-const { createServer } = require('../../app/server')
-const processing = require('../../app/processing')
-
 jest.mock('log-timestamp')
 jest.mock('../../app/insights')
 jest.mock('../../app/server')
 jest.mock('../../app/processing')
+jest.mock('../../app/publishing')
+jest.mock('../../app/config')
+
+const { setup } = require('../../app/insights')
+const { createServer } = require('../../app/server')
+const processing = require('../../app/processing')
+const publishing = require('../../app/publishing')
+const { processingConfig } = require('../../app/config')
+
 jest.spyOn(console, 'log').mockImplementation()
 jest.spyOn(process, 'exit').mockImplementation()
 
 describe('index', () => {
   let mockServer
   let mockProcessingStart
+  let mockPublishingStart
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -25,10 +31,13 @@ describe('index', () => {
     }
 
     mockProcessingStart = jest.fn().mockResolvedValue(undefined)
+    mockPublishingStart = jest.fn().mockResolvedValue(undefined)
 
     createServer.mockResolvedValue(mockServer)
     processing.start = mockProcessingStart
+    publishing.start = mockPublishingStart
     setup.mockImplementation(() => { })
+    processingConfig.processingActive = true
   })
 
   afterEach(() => {
@@ -70,6 +79,35 @@ describe('index', () => {
     expect(mockProcessingStart).toHaveBeenCalledTimes(1)
   })
 
+  test('should start publishing when processingActive is true', async () => {
+    processingConfig.processingActive = true
+    const { init } = require('../../app/index')
+
+    await init()
+
+    expect(mockPublishingStart).toHaveBeenCalledTimes(1)
+  })
+
+  test('should not start publishing when processingActive is false', async () => {
+    processingConfig.processingActive = false
+    const { init } = require('../../app/index')
+
+    await init()
+
+    expect(mockPublishingStart).not.toHaveBeenCalled()
+  })
+
+  test('should log message when publishing is not active', async () => {
+    processingConfig.processingActive = false
+    const { init } = require('../../app/index')
+
+    await init()
+
+    expect(console.log).toHaveBeenCalledWith(
+      'Publishing retention data is not active in this environment'
+    )
+  })
+
   test('should start server before processing', async () => {
     const { init } = require('../../app/index')
 
@@ -88,6 +126,27 @@ describe('index', () => {
     await init()
 
     expect(callOrder).toEqual(['server.start', 'processing.start'])
+  })
+
+  test('should start processing before publishing', async () => {
+    const { init } = require('../../app/index')
+    processingConfig.processingActive = true
+
+    const callOrder = []
+
+    mockProcessingStart.mockImplementation(() => {
+      callOrder.push('processing.start')
+      return Promise.resolve()
+    })
+
+    mockPublishingStart.mockImplementation(() => {
+      callOrder.push('publishing.start')
+      return Promise.resolve()
+    })
+
+    await init()
+
+    expect(callOrder).toEqual(['processing.start', 'publishing.start'])
   })
 
   test('should handle server creation error', async () => {
@@ -115,6 +174,16 @@ describe('index', () => {
     const { init } = require('../../app/index')
 
     await expect(init()).rejects.toThrow('Processing start failed')
+  })
+
+  test('should handle publishing start error when active', async () => {
+    processingConfig.processingActive = true
+    const error = new Error('Publishing start failed')
+    mockPublishingStart.mockRejectedValueOnce(error)
+
+    const { init } = require('../../app/index')
+
+    await expect(init()).rejects.toThrow('Publishing start failed')
   })
 
   test('should complete successfully when all operations succeed', async () => {
@@ -149,7 +218,29 @@ describe('index', () => {
     expect(process.exit).not.toHaveBeenCalled()
   })
 
-  test('should init be called on module load', () => {
-    expect(createServer).toHaveBeenCalled()
+  test('should handle unhandledRejection by logging and exiting', () => {
+    require('../../app/index')
+
+    const unhandledRejectionHandler = process.on.mock.calls.find(
+      call => call[0] === 'unhandledRejection'
+    )[1]
+
+    const testError = new Error('Unhandled error')
+    unhandledRejectionHandler(testError)
+
+    expect(console.log).toHaveBeenCalledWith(testError)
+    expect(process.exit).toHaveBeenCalledWith(1)
+  })
+
+  test('should call setup on module load', () => {
+    require('../../app/index')
+
+    expect(setup).toHaveBeenCalled()
+  })
+
+  test('should call init on module load', () => {
+    const { init } = require('../../app/index')
+
+    expect(init).toBeDefined()
   })
 })

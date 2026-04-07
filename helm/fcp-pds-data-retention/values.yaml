@@ -24,6 +24,7 @@ container:
   port: *port
   processingActive: true
   pollingInterval: 3600000
+  publishingInterval: 3600000
   azureStorageConnectionString: dummy
   messageQueueHost: namespace.servicebus.windows.net
   retentionTopicAddress: fcp-pds-data-retention

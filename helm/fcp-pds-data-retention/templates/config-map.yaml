@@ -6,6 +6,7 @@ data:
   APPINSIGHTS_CLOUDROLE: {{ .Chart.Name | quote }}
   PROCESSING_ACTIVE: {{ quote .Values.container.processingActive }}
   POLLING_INTERVAL: {{ quote .Values.container.pollingInterval }}
+  PUBLISHING_INTERVAL: {{ quote .Values.container.publishingInterval }}
   AZURE_STORAGE_CONNECTION_STRING: {{ quote .Values.container.azureStorageConnectionString }}
   AZURE_STORAGE_ACCOUNT_NAME: {{ quote .Values.container.azureStorageAccountName }}
   AZURE_STORAGE_USE_CONNECTION_STRING: {{ quote .Values.container.azureStorageUseConnectionString }}

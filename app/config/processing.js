@@ -1,13 +1,17 @@
 const Joi = require('joi')
 
+const sixtyMinutes = 3600000
+
 const schema = Joi.object({
   processingActive: Joi.boolean().default(true),
-  pollingInterval: Joi.number().default(3600000) // 60 minutes
+  pollingInterval: Joi.number().default(sixtyMinutes),
+  publishingInterval: Joi.number().default(sixtyMinutes)
 })
 
 const config = {
   processingActive: process.env.PROCESSING_ACTIVE,
-  pollingInterval: process.env.POLLING_INTERVAL
+  pollingInterval: process.env.POLLING_INTERVAL,
+  publishingInterval: process.env.PUBLISHING_INTERVAL
 }
 
 const result = schema.validate(config, {

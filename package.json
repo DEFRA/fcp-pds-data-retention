@@ -30,6 +30,7 @@
     "convict-format-with-validator": "6.2.0",
     "csv-parser": "3.2.0",
     "ffc-database": "^1.0.24",
+    "ffc-messaging": "^2.10.5",
     "ffc-pay-event-publisher": "1.2.3",
     "hapi-pino": "12.1.0",
     "joi": "17.13.3",
