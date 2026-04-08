@@ -1,0 +1,20 @@
+# fcp-pds-data-retention/.gitleaks.toml
+title = "fcp-pds-data-retention"
+
+[extend]
+path = ".gitleaks-shared/.gitleaks.toml"
+
+# Service-specific additions only below this line, use [[ ]] for multiple allowlist instances
+[allowlist]
+description = "Service-specific exclusions"
+paths = [
+  '''test/mock-objects/.*''',
+  '''test/mock-modules/.*''',
+  '''test/unit/.*''',
+  '''etl/totals_from_dwh_sfi23\.sql''',
+  '''cypress/utils/temp-repo/dummy\.txt'''
+]
+
+#enter regex here wrapped in triple ''' to exclude specific keys
+#regexes = [
+#]
