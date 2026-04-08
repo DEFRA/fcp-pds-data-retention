@@ -22,7 +22,9 @@ const initialiseContainers = async () => {
     await container.createIfNotExists()
     console.log('Containers ready')
   }
-  foldersInitialised ?? await initialiseFolders()
+  if (!foldersInitialised) {
+    await initialiseFolders()
+  }
   containersInitialised = true
 }
 
@@ -64,8 +66,8 @@ const getInboundFile = async () => {
 }
 
 const moveFile = async (sourceFolder, destinationFolder, sourceFilename, destinationFilename) => {
-  const sourceBlob = await getBlob(sourceFolder, sourceFilename)
-  const destinationBlob = await getBlob(destinationFolder, destinationFilename)
+  const sourceBlob = container.getBlockBlobClient(`${sourceFolder}/${sourceFilename}`)
+  const destinationBlob = container.getBlockBlobClient(`${destinationFolder}/${destinationFilename}`)
   const copyResult = await (await destinationBlob.beginCopyFromURL(sourceBlob.url)).pollUntilDone()
 
   if (copyResult.copyStatus === 'success') {
@@ -99,7 +101,7 @@ const downloadFileAsStream = async (filename) => {
 const deleteFile = async (filename) => {
   console.log(`Deleting file: ${filename}`)
   try {
-    const blob = await getBlob(`${storageConfig.inboundFolder}/${filename}`)
+    const blob = await getBlob(filename)
     await blob.delete()
     console.log(`File deleted: ${filename}`)
     return true
@@ -110,6 +112,7 @@ const deleteFile = async (filename) => {
 }
 
 module.exports = {
+  initialiseContainers,
   getInboundFile,
   archiveFile,
   quarantineFile,

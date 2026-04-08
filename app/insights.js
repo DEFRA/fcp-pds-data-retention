@@ -1,4 +1,4 @@
-import appInsights from 'applicationinsights'
+const appInsights = require('applicationinsights')
 
 const setup = () => {
   if (process.env.APPINSIGHTS_CONNECTIONSTRING) {
@@ -12,6 +12,6 @@ const setup = () => {
   }
 }
 
-export {
+module.exports = {
   setup
 }

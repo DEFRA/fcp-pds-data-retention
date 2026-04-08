@@ -33,13 +33,15 @@ describe('storage', () => {
       listBlobsFlat: jest.fn()
     }
 
-    BlobServiceClient.fromConnectionString = jest.fn().mockReturnValue({
+    const mockBlobServiceClient = jest.fn(() => ({
+      getContainerClient: jest.fn().mockReturnValue(mockContainerClient)
+    }))
+
+    mockBlobServiceClient.fromConnectionString = jest.fn().mockReturnValue({
       getContainerClient: jest.fn().mockReturnValue(mockContainerClient)
     })
 
-    BlobServiceClient.mockImplementation(() => ({
-      getContainerClient: jest.fn().mockReturnValue(mockContainerClient)
-    }))
+    require('@azure/storage-blob').BlobServiceClient = mockBlobServiceClient
 
     storageConfig.useConnectionStr = false
     storageConfig.connectionStr = 'DefaultEndpointsProtocol=https://...'

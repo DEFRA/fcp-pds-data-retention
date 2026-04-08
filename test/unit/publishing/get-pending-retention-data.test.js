@@ -91,7 +91,7 @@ describe('getPendingRetentionData', () => {
     await getPendingRetentionData()
 
     const callArgs = mockFindAll.mock.calls[0][0]
-    expect(callArgs.where.startProcessing).toHaveProperty(db.Sequelize.Op.lt)
+    expect(callArgs.where.startProcessing[db.Sequelize.Op.lt]).toBeDefined()
   })
 
   test('should call db.retentionData.findAll once per invocation', async () => {

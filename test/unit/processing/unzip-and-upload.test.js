@@ -6,7 +6,10 @@ const { unzipAndUpload } = require('../../../app/processing/unzip-and-upload')
 
 jest.mock('unzipper')
 jest.mock('../../../app/config')
-jest.mock('../../../app/storage')
+jest.mock('../../../app/storage', () => ({
+  getBlob: jest.fn(),
+  quarantineFile: jest.fn()
+}))
 jest.spyOn(console, 'log').mockImplementation()
 jest.spyOn(console, 'error').mockImplementation()
 

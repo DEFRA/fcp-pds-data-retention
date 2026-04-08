@@ -1,10 +1,19 @@
 jest.mock('log-timestamp')
-jest.mock('../../app/insights')
-jest.mock('../../app/server')
-jest.mock('../../app/processing')
-jest.mock('../../app/publishing')
-jest.mock('../../app/config')
-
+jest.mock('../../app/insights', () => ({
+  setup: jest.fn()
+}))
+jest.mock('../../app/server', () => ({
+  createServer: jest.fn()
+}))
+jest.mock('../../app/processing', () => ({
+  start: jest.fn()
+}))
+jest.mock('../../app/publishing', () => ({
+  start: jest.fn()
+}))
+jest.mock('../../app/config', () => ({
+  processingConfig: {}
+}))
 const { setup } = require('../../app/insights')
 const { createServer } = require('../../app/server')
 const processing = require('../../app/processing')

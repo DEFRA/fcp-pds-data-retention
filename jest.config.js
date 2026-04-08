@@ -1,4 +1,4 @@
-const config = {
+module.exports = {
   collectCoverage: true,
   collectCoverageFrom: [
     '**/*.js',
@@ -14,8 +14,8 @@ const config = {
     '<rootDir>/node_modules/',
     '<rootDir>/test-output/',
     '<rootDir>/test/',
-    '<rootDir>/rename.js',
-    '<rootDir>/jest.config.js'
+    '<rootDir>/jest.config.js',
+    '<rootDir>/app/config'
   ],
   modulePathIgnorePatterns: [
     'node_modules'
@@ -33,8 +33,6 @@ const config = {
   ],
   testEnvironment: 'node',
   testPathIgnorePatterns: [],
-  verbose: true,
-  transform: {}
+  setupFilesAfterEnv: ['./jest.setup.js'],
+  verbose: true
 }
-
-export default config

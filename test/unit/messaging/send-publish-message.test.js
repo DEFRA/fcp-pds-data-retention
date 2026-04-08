@@ -4,6 +4,8 @@ jest.mock('../../../app/config')
 const { MessageSender } = require('ffc-messaging')
 const { messageConfig } = require('../../../app/config')
 const sendPublishMessage = require('../../../app/messaging/send-publish-message')
+const { SOURCE } = require('../../../app/constants/source')
+const { RETENTION_DATA_EXPIRED } = require('../../../app/constants/events')
 
 describe('sendPublishMessage', () => {
   let mockSender
@@ -26,8 +28,8 @@ describe('sendPublishMessage', () => {
     expect(MessageSender).toHaveBeenCalledWith('test-topic')
     expect(mockSender.sendMessage).toHaveBeenCalledWith({
       body: testBody,
-      type: 'RETENTION_DATA_EXPIRED',
-      source: 'SOURCE'
+      type: RETENTION_DATA_EXPIRED,
+      source: SOURCE
     })
   })
 

@@ -1,5 +1,5 @@
 const { MessageSender } = require('ffc-messaging')
-const { messageConfig } = require('../../config')
+const { messageConfig } = require('../config')
 const { RETENTION_DATA_EXPIRED } = require('../constants/events')
 const { SOURCE } = require('../constants/source')
 

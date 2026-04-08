@@ -1,5 +1,7 @@
 jest.mock('../../../app/config')
-jest.mock('../../../app/publishing/publish-retention-data')
+jest.mock('../../../app/publishing/publish-retention-data', () => ({
+  publishRetentionData: jest.fn()
+}))
 
 const { processingConfig } = require('../../../app/config')
 const { publishRetentionData } = require('../../../app/publishing/publish-retention-data')
@@ -9,6 +11,7 @@ describe('publishing/index - start', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     jest.useFakeTimers()
+    jest.spyOn(global, 'setTimeout')
     processingConfig.publishingInterval = 5000
     publishRetentionData.mockResolvedValue(undefined)
   })

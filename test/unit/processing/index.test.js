@@ -11,6 +11,7 @@ describe('start', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     jest.clearAllTimers()
+    jest.spyOn(global, 'setTimeout')
     pollInbound.mockResolvedValue(undefined)
     processingConfig.pollingInterval = 5000
   })
@@ -19,10 +20,8 @@ describe('start', () => {
     jest.clearAllTimers()
   })
 
-  test('should call pollInbound', async () => {
+  test('should call pollInbound', () => {
     start()
-
-    await jest.runOnlyPendingTimersAsync()
 
     expect(pollInbound).toHaveBeenCalledTimes(1)
   })
