@@ -1,9 +1,9 @@
-const { mapRetentionData } = require('./map-retention-data')
+const { mapRetentionData } = require('../../../app/processing/map-retention-data')
 const { BPS, LUMP_SUMS } = require('../../../app/constants/scheme-names')
 const { BPS: BPS_ID } = require('../../../app/constants/schemes')
 
-jest.mock('../constants/scheme-names')
-jest.mock('../constants/schemes')
+jest.mock('../../../app/constants/scheme-names')
+jest.mock('../../../app/constants/schemes')
 
 describe('mapRetentionData', () => {
   beforeEach(() => {
@@ -16,7 +16,6 @@ describe('mapRetentionData', () => {
     ]
 
     const result = mapRetentionData(retentionData)
-
     expect(result).toHaveProperty('successful')
     expect(result).toHaveProperty('unsuccessful')
     expect(Array.isArray(result.successful)).toBe(true)
@@ -29,8 +28,7 @@ describe('mapRetentionData', () => {
     ]
 
     const result = mapRetentionData(retentionData)
-
-    expect(result.successful[0]).toHaveProperty('schemeId', 1)
+    expect(result.successful[0]).toHaveProperty('schemeId', 6)
   })
 
   test('should remove scheme property from successful data', () => {
@@ -77,8 +75,8 @@ describe('mapRetentionData', () => {
     const result = mapRetentionData(retentionData)
 
     expect(result.successful).toHaveLength(2)
-    expect(result.successful[0].schemeId).toBe(1)
-    expect(result.successful[1].schemeId).toBe(2)
+    expect(result.successful[0].schemeId).toBe(6)
+    expect(result.successful[1].schemeId).toBe(3)
   })
 
   test('should handle mixed successful and unsuccessful data', () => {

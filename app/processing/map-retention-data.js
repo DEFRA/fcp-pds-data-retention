@@ -3,18 +3,19 @@ const schemeIds = require('../constants/schemes')
 
 const mapRetentionData = (retentionData) => {
   const mappedData = { successful: [], unsuccessful: [] }
-  for (const data in retentionData) {
+  for (const data of retentionData) {
     const schemeKey = Object.keys(schemeNames).find(key => schemeNames[key] === data.scheme)
     if (schemeKey && schemeIds[schemeKey]) {
       const { scheme, ...rest } = data
-      mappedData.successfulRetentionData.push({
+      mappedData.successful.push({
         ...rest,
         schemeId: schemeIds[schemeKey]
       })
     } else {
-      mappedData.unsuccessfulRetentionData.push(data)
+      mappedData.unsuccessful.push(data)
     }
   }
+  return mappedData
 }
 
 module.exports = {
