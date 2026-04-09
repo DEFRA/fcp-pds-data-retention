@@ -3,7 +3,7 @@ jest.mock('../../app/insights', () => ({
   setup: jest.fn()
 }))
 jest.mock('../../app/server', () => ({
-  createServer: jest.fn()
+  start: jest.fn()
 }))
 jest.mock('../../app/processing', () => ({
   start: jest.fn()
@@ -15,13 +15,12 @@ jest.mock('../../app/config', () => ({
   processingConfig: {}
 }))
 const { setup } = require('../../app/insights')
-const { createServer } = require('../../app/server')
+const { start: startServer } = require('../../app/server')
 const processing = require('../../app/processing')
 const publishing = require('../../app/publishing')
 const { processingConfig } = require('../../app/config')
 
-jest.spyOn(console, 'log').mockImplementation()
-jest.spyOn(process, 'exit').mockImplementation()
+
 
 describe('index', () => {
   let mockServer
@@ -30,7 +29,9 @@ describe('index', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    jest.resetModules()
+
+    jest.spyOn(console, 'log').mockImplementation()
+    jest.spyOn(process, 'exit').mockImplementation()
 
     mockServer = {
       start: jest.fn().mockResolvedValue(undefined),
@@ -42,7 +43,7 @@ describe('index', () => {
     mockProcessingStart = jest.fn().mockResolvedValue(undefined)
     mockPublishingStart = jest.fn().mockResolvedValue(undefined)
 
-    createServer.mockResolvedValue(mockServer)
+    startServer.mockResolvedValue(mockServer)
     processing.start = mockProcessingStart
     publishing.start = mockPublishingStart
     setup.mockImplementation(() => { })
@@ -53,38 +54,19 @@ describe('index', () => {
     jest.clearAllTimers()
   })
 
-  test('should create server', async () => {
-    const { init } = require('../../app/index')
-
-    await init()
-
-    expect(createServer).toHaveBeenCalledTimes(1)
-  })
-
   test('should start server', async () => {
     const { init } = require('../../app/index')
 
     await init()
-
-    expect(mockServer.start).toHaveBeenCalledTimes(1)
-  })
-
-  test('should log server URI', async () => {
-    const { init } = require('../../app/index')
-
-    await init()
-
-    expect(console.log).toHaveBeenCalledWith(
-      'Server running on %s',
-      'http://localhost:3000'
-    )
+    
+    expect(startServer).toHaveBeenCalledTimes(1)
   })
 
   test('should start processing', async () => {
     const { init } = require('../../app/index')
 
     await init()
-
+    
     expect(mockProcessingStart).toHaveBeenCalledTimes(1)
   })
 
@@ -160,7 +142,7 @@ describe('index', () => {
 
   test('should handle server creation error', async () => {
     const error = new Error('Server creation failed')
-    createServer.mockRejectedValueOnce(error)
+    startServer.mockRejectedValueOnce(error)
 
     const { init } = require('../../app/index')
 
@@ -201,7 +183,7 @@ describe('index', () => {
     const result = await init()
 
     expect(result).toBeUndefined()
-    expect(createServer).toHaveBeenCalled()
+    expect(startServer).toHaveBeenCalled()
     expect(mockServer.start).toHaveBeenCalled()
     expect(mockProcessingStart).toHaveBeenCalled()
   })

@@ -26,6 +26,7 @@ services:
       MESSAGE_QUEUE_USER: RootManageSharedAccessKey
       MESSAGE_QUEUE_PASSWORD: SAS_KEY_VALUE
       EVENTS_TOPIC_ADDRESS: ffc-pay-events-test
+      NODE_ENV: test
 
   fcp-pds-data-retention-postgres:
     volumes:

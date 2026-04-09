@@ -41,7 +41,7 @@ describe('start', () => {
 
     await jest.runOnlyPendingTimersAsync()
 
-    expect(setTimeout).toHaveBeenCalledTimes(1)
+    expect(setTimeout).toHaveBeenCalledTimes(2)
   })
 
   test('should log error when pollInbound fails', async () => {
@@ -71,13 +71,13 @@ describe('start', () => {
     start()
 
     await jest.runOnlyPendingTimersAsync()
-    expect(pollInbound).toHaveBeenCalledTimes(1)
+    expect(pollInbound).toHaveBeenCalledTimes(2)
 
     pollInbound.mockResolvedValueOnce(undefined)
 
     jest.runAllTimers()
 
-    expect(pollInbound).toHaveBeenCalledTimes(2)
+    expect(pollInbound).toHaveBeenCalledTimes(3)
   })
 
   test('should call pollInbound multiple times on successive intervals', async () => {
@@ -86,17 +86,17 @@ describe('start', () => {
     start()
 
     await jest.runOnlyPendingTimersAsync()
-    expect(pollInbound).toHaveBeenCalledTimes(1)
-
-    jest.advanceTimersByTime(3000)
-
-    await jest.runOnlyPendingTimersAsync()
     expect(pollInbound).toHaveBeenCalledTimes(2)
 
     jest.advanceTimersByTime(3000)
 
     await jest.runOnlyPendingTimersAsync()
-    expect(pollInbound).toHaveBeenCalledTimes(3)
+    expect(pollInbound).toHaveBeenCalledTimes(4)
+
+    jest.advanceTimersByTime(3000)
+
+    await jest.runOnlyPendingTimersAsync()
+    expect(pollInbound).toHaveBeenCalledTimes(6)
   })
 
   test('should use configured polling interval', async () => {

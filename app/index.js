@@ -20,4 +20,8 @@ process.on('unhandledRejection', (err) => {
   process.exit(1)
 })
 
-init()
+if (process.env.NODE_ENV !== 'test') {
+  init()
+}
+
+module.exports = { init }
