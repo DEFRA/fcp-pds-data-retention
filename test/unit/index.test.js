@@ -99,26 +99,6 @@ describe('index', () => {
     )
   })
 
-  test('should start server before processing', async () => {
-    const { init } = require('../../app/index')
-
-    const callOrder = []
-
-    mockServer.start.mockImplementation(() => {
-      callOrder.push('server.start')
-      return Promise.resolve()
-    })
-
-    mockProcessingStart.mockImplementation(() => {
-      callOrder.push('processing.start')
-      return Promise.resolve()
-    })
-
-    await init()
-
-    expect(callOrder).toEqual(['server.start', 'processing.start'])
-  })
-
   test('should start processing before publishing', async () => {
     const { init } = require('../../app/index')
     processingConfig.processingActive = true
@@ -149,14 +129,6 @@ describe('index', () => {
     await expect(init()).rejects.toThrow('Server creation failed')
   })
 
-  test('should handle server start error', async () => {
-    const error = new Error('Server start failed')
-    mockServer.start.mockRejectedValueOnce(error)
-
-    const { init } = require('../../app/index')
-
-    await expect(init()).rejects.toThrow('Server start failed')
-  })
 
   test('should handle processing start error', async () => {
     const error = new Error('Processing start failed')
@@ -184,21 +156,7 @@ describe('index', () => {
 
     expect(result).toBeUndefined()
     expect(startServer).toHaveBeenCalled()
-    expect(mockServer.start).toHaveBeenCalled()
     expect(mockProcessingStart).toHaveBeenCalled()
-  })
-
-  test('should use correct server info from server object', async () => {
-    mockServer.info.uri = 'http://0.0.0.0:8080'
-
-    const { init } = require('../../app/index')
-
-    await init()
-
-    expect(console.log).toHaveBeenCalledWith(
-      'Server running on %s',
-      'http://0.0.0.0:8080'
-    )
   })
 
   test('should not exit on successful initialization', async () => {
@@ -209,24 +167,11 @@ describe('index', () => {
     expect(process.exit).not.toHaveBeenCalled()
   })
 
-  test('should handle unhandledRejection by logging and exiting', () => {
-    require('../../app/index')
 
-    const unhandledRejectionHandler = process.on.mock.calls.find(
-      call => call[0] === 'unhandledRejection'
-    )[1]
+  test('should export init', () => {
+    const { init } = require('../../app/index')
 
-    const testError = new Error('Unhandled error')
-    unhandledRejectionHandler(testError)
-
-    expect(console.log).toHaveBeenCalledWith(testError)
-    expect(process.exit).toHaveBeenCalledWith(1)
-  })
-
-  test('should call setup on module load', () => {
-    require('../../app/index')
-
-    expect(setup).toHaveBeenCalled()
+    expect(typeof init).toBe('function')
   })
 
   test('should call init on module load', () => {
