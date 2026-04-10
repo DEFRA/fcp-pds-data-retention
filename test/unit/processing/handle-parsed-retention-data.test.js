@@ -58,7 +58,8 @@ describe('handleParsedRetentionData', () => {
 
     await handleParsedRetentionData(parsedRetentionData)
 
-    expect(saveValidRetentionData).toHaveBeenCalledBefore(sendRetentionDataInvalidEvents)
+    expect(saveValidRetentionData.mock.invocationCallOrder[0])
+  .toBeLessThan(sendRetentionDataInvalidEvents.mock.invocationCallOrder[0])
   })
 
   test('should handle error from saveValidRetentionData', async () => {
