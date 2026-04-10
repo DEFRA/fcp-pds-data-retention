@@ -48,7 +48,7 @@ extends:
     branchDeployment: ${{ parameters.branchDeployment }}
     snd1Deployment: ${{ parameters.snd1Deployment }}
     sndDeployment: ${{ parameters.snd2Deployment }}
-    variableGroupName: ffc-pds-data-retention-env-var
+    variableGroupName: fcp-pds-data-retention-env-var
     pr_params:
       container.pollingInterval: $(pr_pollingInterval)
       container.publishingInterval: $(pr_publishingInterval)
