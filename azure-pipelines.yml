@@ -19,7 +19,10 @@ parameters:
   - name: branchDeployment
     type: boolean
     default: true
-  - name: sndDeployment
+  - name: snd2Deployment
+    type: boolean
+    default: true
+  - name: snd1Deployment
     type: boolean
     default: true
 
@@ -44,7 +47,7 @@ extends:
     prDeployment: ${{ parameters.prDeployment }}
     branchDeployment: ${{ parameters.branchDeployment }}
     snd1Deployment: ${{ parameters.snd1Deployment }}
-    snd2Deployment: ${{ parameters.snd2Deployment }}
+    sndDeployment: ${{ parameters.snd2Deployment }}
     variableGroupName: ffc-pds-data-retention-env-var
     pr_params:
       container.pollingInterval: $(pr_pollingInterval)
