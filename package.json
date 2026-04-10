@@ -6,7 +6,6 @@
   "main": "app/index.js",
   "scripts": {
     "pretest": "npm run test:lint",
-    "test": "jest --runInBand --forceExit",
     "test:watch": "jest --coverage=false --onlyChanged --watch --runInBand",
     "test:unit": "jest --testPathPattern=test/unit --coverage=false",
     "test:lint": "eslint",
