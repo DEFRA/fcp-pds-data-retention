@@ -66,7 +66,7 @@ const getInboundFile = async () => {
     const tsB = b.match(/\d{14}/)?.[0]
     return tsA.localeCompare(tsB)
   })
-  
+
   return matchedFiles[0]
 }
 
