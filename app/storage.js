@@ -61,7 +61,12 @@ const getInboundFile = async () => {
     return null
   }
 
-  matchedFiles.sort()
+  matchedFiles.sort((a, b) => {
+    const tsA = a.match(/\d{14}/)?.[0]
+    const tsB = b.match(/\d{14}/)?.[0]
+    return tsA.localeCompare(tsB)
+  })
+  
   return matchedFiles[0]
 }
 
