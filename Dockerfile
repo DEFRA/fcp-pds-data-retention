@@ -13,7 +13,8 @@ ENV PORT=${PORT}
 EXPOSE ${PORT} ${PORT_DEBUG}
 
 COPY --chown=node:node package*.json ./
-RUN npm install
+RUN chmod a-w package*.json
+RUN npm install --ignore-scripts
 COPY --chown=node:node . .
 CMD [ "npm", "run", "start:watch" ]
 
