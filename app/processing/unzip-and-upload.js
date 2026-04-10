@@ -20,16 +20,15 @@ const unzipAndUpload = (zipStream) => {
         const baseFileName = fileName.split('/').pop()
         console.log(`Extracting file from zip: ${baseFileName}`)
 
-        const uploadPromise = storage.getBlob(`${storageConfig.inboundFolder}/${baseFileName}`)
+        const uploadPromise = storage
+          .getBlob(`${storageConfig.inboundFolder}/${baseFileName}`)
           .then(blobClient => blobClient.uploadStream(entry))
           .then(() => {
             console.log(`Uploaded file to blob storage: ${baseFileName}`)
             uploadedFiles.push(baseFileName)
           })
           .catch(async (err) => {
-            for (const uploadedFile in uploadedFiles) {
-              await storage.quarantineFile(uploadedFile)
-            }
+            await storage.quarantineFile(baseFileName)
             throw err
           })
 

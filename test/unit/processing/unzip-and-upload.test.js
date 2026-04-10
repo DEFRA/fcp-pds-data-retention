@@ -198,11 +198,14 @@ describe('unzipAndUpload', () => {
     }
 
     mockParseStream.handlers.entry(fileEntry)
+
+    // allow storage.getBlob().then(...) to run
+    await Promise.resolve()
+
     mockParseStream.handlers.close()
 
     const resultPromise = promise.then(result => result)
 
-    // Upload not complete yet
     expect(uploadPromises).toHaveLength(1)
 
     uploadPromises[0].resolve()
