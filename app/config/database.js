@@ -1,4 +1,5 @@
 const { DefaultAzureCredential, getBearerTokenProvider } = require('@azure/identity')
+const defaultPort = 5432
 
 function isProd () {
   return process.env.NODE_ENV === 'production'
@@ -36,7 +37,7 @@ const dbConfig = {
   hooks,
   host: process.env.POSTGRES_HOST || 'fcp-pds-data-retention',
   password: process.env.POSTGRES_PASSWORD,
-  port: process.env.POSTGRES_PORT || 5432,
+  port: process.env.POSTGRES_PORT || defaultPort,
   logging: process.env.POSTGRES_LOGGING || false,
   retry,
   schema: process.env.POSTGRES_SCHEMA_NAME || 'public',
