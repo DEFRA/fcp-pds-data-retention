@@ -20,8 +20,6 @@ const processing = require('../../app/processing')
 const publishing = require('../../app/publishing')
 const { processingConfig } = require('../../app/config')
 
-
-
 describe('index', () => {
   let mockServer
   let mockProcessingStart
@@ -58,7 +56,7 @@ describe('index', () => {
     const { init } = require('../../app/index')
 
     await init()
-    
+
     expect(startServer).toHaveBeenCalledTimes(1)
   })
 
@@ -66,7 +64,7 @@ describe('index', () => {
     const { init } = require('../../app/index')
 
     await init()
-    
+
     expect(mockProcessingStart).toHaveBeenCalledTimes(1)
   })
 
@@ -129,7 +127,6 @@ describe('index', () => {
     await expect(init()).rejects.toThrow('Server creation failed')
   })
 
-
   test('should handle processing start error', async () => {
     const error = new Error('Processing start failed')
     mockProcessingStart.mockRejectedValueOnce(error)
@@ -166,7 +163,6 @@ describe('index', () => {
 
     expect(process.exit).not.toHaveBeenCalled()
   })
-
 
   test('should export init', () => {
     const { init } = require('../../app/index')

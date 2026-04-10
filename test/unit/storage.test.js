@@ -101,7 +101,7 @@ describe('storage', () => {
 
   test('should return null when no inbound files found', async () => {
     mockContainerClient.listBlobsFlat.mockReturnValueOnce({
-      [Symbol.asyncIterator]: async function* () {}
+      [Symbol.asyncIterator]: async function * () {}
     })
 
     const storage = require('../../app/storage')
@@ -116,7 +116,7 @@ describe('storage', () => {
     ]
 
     mockContainerClient.listBlobsFlat.mockReturnValueOnce({
-      [Symbol.asyncIterator]: async function* () {
+      [Symbol.asyncIterator]: async function * () {
         for (const file of mockFiles) yield file
       }
     })
@@ -135,7 +135,7 @@ describe('storage', () => {
     ]
 
     mockContainerClient.listBlobsFlat.mockReturnValueOnce({
-      [Symbol.asyncIterator]: async function* () {
+      [Symbol.asyncIterator]: async function * () {
         for (const file of mockFiles) yield file
       }
     })
