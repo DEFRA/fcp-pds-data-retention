@@ -10,9 +10,6 @@ const mqSchema = Joi.object({
     password: Joi.string(),
     managedIdentityClientId: Joi.string().optional()
   },
-  eventsTopic: {
-    address: Joi.string()
-  },
   retentionTopic: {
     address: Joi.string()
   }
@@ -27,9 +24,6 @@ const mqConfig = {
     password: process.env.MESSAGE_QUEUE_PASSWORD,
     managedIdentityClientId: process.env.AZURE_CLIENT_ID
   },
-  eventsTopic: {
-    address: process.env.EVENTS_TOPIC_ADDRESS
-  },
   retentionTopic: {
     address: process.env.RETENTION_TOPIC_ADDRESS
   }
@@ -43,8 +37,8 @@ if (mqResult.error) {
   throw new Error(`The message queue config is invalid. ${mqResult.error.message}`)
 }
 
-const eventsTopic = { ...mqResult.value.messageQueue, ...mqResult.value.eventsTopic }
+const retentionTopic = { ...mqResult.value.messageQueue, ...mqResult.value.retentionTopic }
 
 module.exports = {
-  eventsTopic
+  retentionTopic
 }

@@ -1,9 +1,9 @@
+jest.mock('../../../app/storage')
 const storage = require('../../../app/storage')
 const { parseRetentionFile } = require('../../../app/processing/parse-retention-file')
 const { unzipAndUpload } = require('../../../app/processing/unzip-and-upload')
 const processDataRetentionFile = require('../../../app/processing/process-data-retention-file')
 
-jest.mock('../../../app/storage')
 jest.mock('../../../app/processing/parse-retention-file')
 jest.mock('../../../app/processing/unzip-and-upload')
 jest.spyOn(console, 'log').mockImplementation()

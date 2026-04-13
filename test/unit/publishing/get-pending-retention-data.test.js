@@ -21,8 +21,8 @@ describe('getPendingRetentionData', () => {
 
   test('should return pending retention data', async () => {
     const mockData = [
-      { id: 1, startProcessing: new Date('2019-01-01') },
-      { id: 2, startProcessing: new Date('2019-06-01') }
+      { id: 1, endDate: new Date('2019-01-01') },
+      { id: 2, endDate: new Date('2019-06-01') }
     ]
     mockFindAll.mockResolvedValue(mockData)
 
@@ -37,7 +37,7 @@ describe('getPendingRetentionData', () => {
     await getPendingRetentionData()
 
     const callArgs = mockFindAll.mock.calls[0][0]
-    expect(callArgs.limit).toBe(500)
+    expect(callArgs.limit).toBe(1000)
   })
 
   test('should set lock to true', async () => {
@@ -58,7 +58,7 @@ describe('getPendingRetentionData', () => {
     await getPendingRetentionData()
 
     const callArgs = mockFindAll.mock.calls[0][0]
-    const filterDate = callArgs.where.startProcessing[db.Sequelize.Op.lt]
+    const filterDate = callArgs.where.endDate[db.Sequelize.Op.lt]
 
     const expectedDate = new Date(now)
     expectedDate.setFullYear(expectedDate.getFullYear() - 7)
@@ -91,7 +91,7 @@ describe('getPendingRetentionData', () => {
     await getPendingRetentionData()
 
     const callArgs = mockFindAll.mock.calls[0][0]
-    expect(callArgs.where.startProcessing[db.Sequelize.Op.lt]).toBeDefined()
+    expect(callArgs.where.endDate[db.Sequelize.Op.lt]).toBeDefined()
   })
 
   test('should call db.retentionData.findAll once per invocation', async () => {

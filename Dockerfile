@@ -23,10 +23,6 @@ FROM defradigital/node:${PARENT_VERSION} AS production
 ARG PARENT_VERSION
 LABEL uk.gov.defra.ffc.parent-image=defradigital/node:${PARENT_VERSION}
 
-ARG PORT
-ENV PORT=${PORT}
-EXPOSE ${PORT}
-
 COPY --from=development /home/node/app/ ./app/
 COPY --from=development /home/node/package*.json ./
 RUN HUSKY=0 npm ci --ignore-scripts

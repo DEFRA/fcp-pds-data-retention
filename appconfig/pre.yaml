@@ -8,7 +8,6 @@ container:
   azureStorageCreateContainers: false
   messageQueueHost: PREFFCINFSB1001.servicebus.windows.net
   retentionTopicAddress: fcp-pds-data-retention
-  eventsTopicAddress: ffc-pay-events
 secretProviderClass:
   azure:
     keyvaultName: PREFFCINFKV1001
@@ -17,7 +16,7 @@ secretProviderClass:
         objectType: secret
 
   secretObjects:
-    - secretName: ffc-pay-batch-processor
+    - secretName: fcp-pds-data-retention
       type: Opaque
       data:
         - objectName: pre-ffcahwr-appInsights-connectionString

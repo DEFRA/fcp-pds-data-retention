@@ -5,9 +5,9 @@ jest.mock('../../../app/data')
 const { getPendingRetentionData } = require('../../../app/publishing/get-pending-retention-data')
 const sendPublishMessage = require('../../../app/messaging/send-publish-message')
 const db = require('../../../app/data')
-const { publishStatements } = require('../../../app/publishing/publish-retention-data')
+const { publishRetentionData } = require('../../../app/publishing/publish-retention-data')
 
-describe('publishStatements', () => {
+describe('publishRetentionData', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     db.retentionData = {
@@ -19,19 +19,19 @@ describe('publishStatements', () => {
   test('should get pending retention data', async () => {
     getPendingRetentionData.mockResolvedValue([])
 
-    await publishStatements()
+    await publishRetentionData()
 
     expect(getPendingRetentionData).toHaveBeenCalledTimes(1)
   })
 
   test('should process all pending retention data items', async () => {
     const mockData = [
-      { dataRetentionId: 1, frn: 'FRN001', agreementNumber: 'AGR001' },
-      { dataRetentionId: 2, frn: 'FRN002', agreementNumber: 'AGR002' }
+      { retentionDataId: 1, frn: 'FRN001', agreementNumber: 'AGR001' },
+      { retentionDataId: 2, frn: 'FRN002', agreementNumber: 'AGR002' }
     ]
     getPendingRetentionData.mockResolvedValue(mockData)
 
-    await publishStatements()
+    await publishRetentionData()
 
     expect(sendPublishMessage).toHaveBeenCalledTimes(2)
     expect(db.retentionData.destroy).toHaveBeenCalledTimes(2)
@@ -39,36 +39,36 @@ describe('publishStatements', () => {
 
   test('should send publish message with correct pending data', async () => {
     const mockData = [
-      { dataRetentionId: 1, frn: 'FRN001', agreementNumber: 'AGR001' }
+      { retentionDataId: 1, frn: 'FRN001', agreementNumber: 'AGR001' }
     ]
     getPendingRetentionData.mockResolvedValue(mockData)
 
-    await publishStatements()
+    await publishRetentionData()
 
     expect(sendPublishMessage).toHaveBeenCalledWith(mockData[0])
   })
 
-  test('should destroy record with correct dataRetentionId', async () => {
+  test('should destroy record with correct retentionDataId', async () => {
     const mockData = [
-      { dataRetentionId: 123, frn: 'FRN001', agreementNumber: 'AGR001' }
+      { retentionDataId: 123, frn: 'FRN001', agreementNumber: 'AGR001' }
     ]
     getPendingRetentionData.mockResolvedValue(mockData)
 
-    await publishStatements()
+    await publishRetentionData()
 
     expect(db.retentionData.destroy).toHaveBeenCalledWith({
-      where: { dataRetentionId: 123 }
+      where: { retentionDataId: 123 }
     })
   })
 
   test('should log data passing retention with frn and agreement number', async () => {
     const mockData = [
-      { dataRetentionId: 1, frn: 'FRN001', agreementNumber: 'AGR001' }
+      { retentionDataId: 1, frn: 'FRN001', agreementNumber: 'AGR001' }
     ]
     getPendingRetentionData.mockResolvedValue(mockData)
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
 
-    await publishStatements()
+    await publishRetentionData()
 
     expect(consoleSpy).toHaveBeenCalledWith(
       'Data passed 7 year retention for frn: FRN001, agreement number: AGR001'
@@ -78,12 +78,12 @@ describe('publishStatements', () => {
 
   test('should log notification supplied to downstream systems after each item', async () => {
     const mockData = [
-      { dataRetentionId: 1, frn: 'FRN001', agreementNumber: 'AGR001' }
+      { retentionDataId: 1, frn: 'FRN001', agreementNumber: 'AGR001' }
     ]
     getPendingRetentionData.mockResolvedValue(mockData)
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
 
-    await publishStatements()
+    await publishRetentionData()
 
     expect(consoleSpy).toHaveBeenCalledWith('Notification supplied to downstream systems')
     consoleSpy.mockRestore()
@@ -92,7 +92,7 @@ describe('publishStatements', () => {
   test('should handle empty pending data array', async () => {
     getPendingRetentionData.mockResolvedValue([])
 
-    await publishStatements()
+    await publishRetentionData()
 
     expect(sendPublishMessage).not.toHaveBeenCalled()
     expect(db.retentionData.destroy).not.toHaveBeenCalled()
@@ -102,48 +102,48 @@ describe('publishStatements', () => {
     const testError = new Error('Database error')
     getPendingRetentionData.mockRejectedValue(testError)
 
-    await expect(publishStatements()).rejects.toThrow('Database error')
+    await expect(publishRetentionData()).rejects.toThrow('Database error')
   })
 
   test('should throw error when sendPublishMessage fails', async () => {
     const mockData = [
-      { dataRetentionId: 1, frn: 'FRN001', agreementNumber: 'AGR001' }
+      { retentionDataId: 1, frn: 'FRN001', agreementNumber: 'AGR001' }
     ]
     getPendingRetentionData.mockResolvedValue(mockData)
     const testError = new Error('Message send failed')
     sendPublishMessage.mockRejectedValue(testError)
 
-    await expect(publishStatements()).rejects.toThrow('Message send failed')
+    await expect(publishRetentionData()).rejects.toThrow('Message send failed')
   })
 
   test('should throw error when destroy fails', async () => {
     const mockData = [
-      { dataRetentionId: 1, frn: 'FRN001', agreementNumber: 'AGR001' }
+      { retentionDataId: 1, frn: 'FRN001', agreementNumber: 'AGR001' }
     ]
     getPendingRetentionData.mockResolvedValue(mockData)
     const testError = new Error('Destroy failed')
     db.retentionData.destroy.mockRejectedValue(testError)
 
-    await expect(publishStatements()).rejects.toThrow('Destroy failed')
+    await expect(publishRetentionData()).rejects.toThrow('Destroy failed')
   })
 
   test('should process items sequentially', async () => {
     const mockData = [
-      { dataRetentionId: 1, frn: 'FRN001', agreementNumber: 'AGR001' },
-      { dataRetentionId: 2, frn: 'FRN002', agreementNumber: 'AGR002' }
+      { retentionDataId: 1, frn: 'FRN001', agreementNumber: 'AGR001' },
+      { retentionDataId: 2, frn: 'FRN002', agreementNumber: 'AGR002' }
     ]
     getPendingRetentionData.mockResolvedValue(mockData)
     const callOrder = []
     sendPublishMessage.mockImplementation((data) => {
-      callOrder.push(`message-${data.dataRetentionId}`)
+      callOrder.push(`message-${data.retentionDataId}`)
       return Promise.resolve()
     })
     db.retentionData.destroy.mockImplementation((query) => {
-      callOrder.push(`destroy-${query.where.dataRetentionId}`)
+      callOrder.push(`destroy-${query.where.retentionDataId}`)
       return Promise.resolve()
     })
 
-    await publishStatements()
+    await publishRetentionData()
 
     expect(callOrder).toEqual([
       'message-1',
@@ -155,14 +155,14 @@ describe('publishStatements', () => {
 
   test('should handle multiple items with different frn and agreement numbers', async () => {
     const mockData = [
-      { dataRetentionId: 1, frn: 'FRN001', agreementNumber: 'AGR001' },
-      { dataRetentionId: 2, frn: 'FRN002', agreementNumber: 'AGR002' },
-      { dataRetentionId: 3, frn: 'FRN003', agreementNumber: 'AGR003' }
+      { retentionDataId: 1, frn: 'FRN001', agreementNumber: 'AGR001' },
+      { retentionDataId: 2, frn: 'FRN002', agreementNumber: 'AGR002' },
+      { retentionDataId: 3, frn: 'FRN003', agreementNumber: 'AGR003' }
     ]
     getPendingRetentionData.mockResolvedValue(mockData)
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
 
-    await publishStatements()
+    await publishRetentionData()
 
     const logCalls = consoleSpy.mock.calls.filter(call =>
       call[0].includes('Data passed 7 year retention')

@@ -8,7 +8,7 @@ const schema = Joi.object({
   archiveFolder: Joi.string().required(),
   quarantineFolder: Joi.string().required(),
   useConnectionStr: Joi.boolean().default(false),
-  createContainers: Joi.boolean().default(false),
+  createContainers: Joi.boolean().default(true),
   managedIdentityClientId: Joi.string().optional()
 })
 

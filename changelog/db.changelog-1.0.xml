@@ -29,10 +29,6 @@
       <column name="name" value="SFI" />
     </insert>
     <insert tableName="schemes">
-      <column name="schemeId" value="1" />
-      <column name="name" value="SFI" />
-    </insert>
-    <insert tableName="schemes">
       <column name="schemeId" value="2" />
       <column name="name" value="SFI Pilot" />
     </insert>

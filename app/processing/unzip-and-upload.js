@@ -21,7 +21,7 @@ const unzipAndUpload = (zipStream) => {
         console.log(`Extracting file from zip: ${baseFileName}`)
 
         const uploadPromise = storage
-          .getBlob(`${storageConfig.inboundFolder}/${baseFileName}`)
+          .getBlob(`${storageConfig.inboundFolder}/${baseFileName}`, false)
           .then(blobClient => blobClient.uploadStream(entry))
           .then(() => {
             console.log(`Uploaded file to blob storage: ${baseFileName}`)

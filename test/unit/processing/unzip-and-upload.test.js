@@ -119,7 +119,7 @@ describe('unzipAndUpload', () => {
 
     const result = await promise
 
-    expect(storage.getBlob).toHaveBeenCalledWith('/inbound/retention-data.csv')
+    expect(storage.getBlob).toHaveBeenCalledWith('/inbound/retention-data.csv', false)
     expect(mockBlobClient.uploadStream).toHaveBeenCalledWith(fileEntry)
     expect(result).toContain('retention-data.csv')
   })
@@ -365,7 +365,7 @@ describe('unzipAndUpload', () => {
 
     await promise
 
-    expect(storage.getBlob).toHaveBeenCalledWith('/custom/inbound/retention-data.csv')
+    expect(storage.getBlob).toHaveBeenCalledWith('/custom/inbound/retention-data.csv', false)
   })
 
   test('should handle mixed files and directories', async () => {

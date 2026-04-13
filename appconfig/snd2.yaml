@@ -8,4 +8,3 @@ container:
   azureStorageCreateContainers: false
   messageQueueHost: SNDFFCINFSB2001.servicebus.windows.net
   retentionTopicAddress: fcp-pds-data-retention
-  eventsTopicAddress: ffc-pay-events

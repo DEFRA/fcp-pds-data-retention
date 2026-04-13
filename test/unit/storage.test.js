@@ -112,7 +112,7 @@ describe('storage', () => {
 
   test('should return matched inbound file', async () => {
     const mockFiles = [
-      { name: '/inbound/DWH_PDS_SchemeClosures_20250101140000.zip' }
+      { name: '/inbound/FCP_PDS_SchemeClosures_20250101140000.zip' }
     ]
 
     mockContainerClient.listBlobsFlat.mockReturnValueOnce({
@@ -124,14 +124,14 @@ describe('storage', () => {
     const storage = require('../../app/storage')
     const result = await storage.getInboundFile()
 
-    expect(result).toBe('DWH_PDS_SchemeClosures_20250101140000.zip')
+    expect(result).toBe('FCP_PDS_SchemeClosures_20250101140000.zip')
   })
 
   test('should return oldest file when multiple matches found', async () => {
     const mockFiles = [
-      { name: '/inbound/DWH_PDS_SchemeClosures_20250103140000.zip' },
-      { name: '/inbound/DWH_PDS_SchemeClosures_20250101140000.zip' },
-      { name: '/inbound/DWH_PDS_SchemeClosures_20250102140000.zip' }
+      { name: '/inbound/FCP_PDS_SchemeClosures_20250103140000.zip' },
+      { name: '/inbound/FCP_PDS_SchemeClosures_20250101140000.zip' },
+      { name: '/inbound/FCP_PDS_SchemeClosures_20250102140000.zip' }
     ]
 
     mockContainerClient.listBlobsFlat.mockReturnValueOnce({
@@ -143,7 +143,7 @@ describe('storage', () => {
     const storage = require('../../app/storage')
     const result = await storage.getInboundFile()
 
-    expect(result).toBe('DWH_PDS_SchemeClosures_20250101140000.zip')
+    expect(result).toBe('FCP_PDS_SchemeClosures_20250101140000.zip')
   })
 
   test('should download file as stream', async () => {

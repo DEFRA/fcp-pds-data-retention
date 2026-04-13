@@ -26,9 +26,10 @@ container:
   pollingInterval: 3600000
   publishingInterval: 3600000
   azureStorageConnectionString: dummy
+  azureStorageUseConnectionString: false
+  azureStorageAccountName: fcppds
   messageQueueHost: namespace.servicebus.windows.net
   retentionTopicAddress: fcp-pds-data-retention
-  eventsTopicAddress: ffc-pay-events
 
 postgresService:
   postgresDb: fcp_pds_data_retention
@@ -67,7 +68,7 @@ secretProviderClass:
         objectType: secret
 
   secretObjects: # creating a Kubernetes secret from the Azure Key Vault secrets
-    - secretName: ffc-pay-batch-processor
+    - secretName: fcp-pds-data-retention
       type: Opaque
       data:
         - objectName: appInsights-connectionString # secret name in Azure Key Vault

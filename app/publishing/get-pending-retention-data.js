@@ -1,15 +1,15 @@
 const db = require('../data')
 
 const retentionYears = 7
-const publishingLimit = 500
+const publishingLimit = 1000
 
 const getPendingRetentionData = async () => {
   const retentionYearsAgo = new Date()
   retentionYearsAgo.setFullYear(retentionYearsAgo.getFullYear() - retentionYears)
-
+  console.log(retentionYearsAgo)
   return db.retentionData.findAll({
     where: {
-      startProcessing: { [db.Sequelize.Op.lt]: retentionYearsAgo }
+      endDate: { [db.Sequelize.Op.lt]: retentionYearsAgo }
     },
     limit: publishingLimit,
     lock: true

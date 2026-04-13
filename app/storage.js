@@ -37,19 +37,19 @@ const initialiseFolders = async () => {
   console.log('Folders ready')
 }
 
-const getBlob = async (filename) => {
+const getBlob = async (filename, useInboundFolder = true) => {
   containersInitialised ?? await initialiseContainers()
-  return container.getBlockBlobClient(`${storageConfig.inboundFolder}/${filename}`)
+  const path = useInboundFolder ? `${storageConfig.inboundFolder}/${filename}` : filename
+  return container.getBlockBlobClient(path)
 }
 
 const getInboundFile = async () => {
   containersInitialised ?? await initialiseContainers()
 
-  const prefix = `${storageConfig.inboundFolder}/DWH_PDS_SchemeClosures_`
+  const prefix = `${storageConfig.inboundFolder}/FCP_PDS_SchemeClosures_`
   const regex = new RegExp(`^${prefix}\\d{14}\\.zip$`)
 
   const matchedFiles = []
-
   // specify prefix to ignore archive and quarantine folders, as well as default.txt file
   for await (const file of container.listBlobsFlat({ prefix })) {
     if (regex.test(file.name)) {
@@ -118,6 +118,7 @@ const deleteFile = async (filename) => {
 
 module.exports = {
   initialiseContainers,
+  getBlob,
   getInboundFile,
   archiveFile,
   quarantineFile,

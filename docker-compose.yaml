@@ -17,7 +17,7 @@ services:
       PROCESSING_ACTIVE: ${PROCESSING_ACTIVE:-true}
       POLLING_INTERVAL: ${POLLING_INTERVAL:-3600000}
       PUBLISHING_INTERVAL: ${PUBLISHING_INTERVAL:-3600000}
-      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING};BlobEndpoint=http://ffc-pay-batch-azurite:10000/devstoreaccount1;
+      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING};BlobEndpoint=http://fcp-pds-data-retention-azurite:10000/devstoreaccount1;
       AZURE_STORAGE_ACCOUNT_NAME: ${AZURE_STORAGE_ACCOUNT_NAME:-devstoreaccount1}
       AZURE_STORAGE_USE_CONNECTION_STRING: "true"
       AZURE_STORAGE_CREATE_CONTAINERS: "true"
@@ -42,6 +42,6 @@ services:
 
   fcp-pds-data-retention-azurite:
     image: mcr.microsoft.com/azure-storage/azurite:3.35.0
-    command: "azurite-blob --loose --blobHost 0.0.0.0"
+    command: "azurite-blob --loose --blobHost 0.0.0.0 --skipApiVersionCheck"
     labels:
       com.docker.compose.pds.role: fcp-pds-data-retention-azurite
