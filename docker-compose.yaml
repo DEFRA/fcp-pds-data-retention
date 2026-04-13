@@ -17,7 +17,7 @@ services:
       PROCESSING_ACTIVE: ${PROCESSING_ACTIVE:-true}
       POLLING_INTERVAL: ${POLLING_INTERVAL:-3600000}
       PUBLISHING_INTERVAL: ${PUBLISHING_INTERVAL:-3600000}
-      AZURE_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://ffc-pay-batch-azurite:10000/devstoreaccount1;
+      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING};BlobEndpoint=http://ffc-pay-batch-azurite:10000/devstoreaccount1;
       AZURE_STORAGE_ACCOUNT_NAME: ${AZURE_STORAGE_ACCOUNT_NAME:-devstoreaccount1}
       AZURE_STORAGE_USE_CONNECTION_STRING: "true"
       AZURE_STORAGE_CREATE_CONTAINERS: "true"
