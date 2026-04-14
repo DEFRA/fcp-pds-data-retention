@@ -11,7 +11,8 @@ appInsights:
 
 labels: {}
 
-containerConfigMap: {}
+containerConfigMap:
+  name: fcp-pds-data-retention-config-map
 
 containerSecret:
   name: fcp-pds-data-retention
