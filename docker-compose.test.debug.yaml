@@ -2,4 +2,4 @@ services:
   fcp-pds-data-retention:
     command: npm run test:debug
     ports:
-      - "9229:9229"
+      - "9245:9229"

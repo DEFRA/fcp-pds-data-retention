@@ -1,35 +1,26 @@
-const convict = require('convict')
-const convictFormatWithValidator = require('convict-format-with-validator')
+const Joi = require('joi')
 
-convict.addFormats(convictFormatWithValidator)
-
-const config = convict({
-  env: {
-    doc: 'The application environment.',
-    format: ['production', 'development', 'test'],
-    default: 'development',
-    env: 'NODE_ENV'
-  },
-  isDev: {
-    doc: 'True if the application is in development mode.',
-    format: Boolean,
-    default: process.env.NODE_ENV === 'development'
-  },
-  host: {
-    doc: 'The host to bind.',
-    format: 'ipaddress',
-    default: '0.0.0.0',
-    env: 'HOST'
-  },
-  port: {
-    doc: 'The port to bind.',
-    format: 'port',
-    default: 3024,
-    env: 'PORT',
-    arg: 'port'
-  }
+const schema = Joi.object({
+  port: Joi.number().default(3024),
+  env: Joi.string().valid('development', 'test', 'production').default('development')
 })
 
-config.validate({ allowed: 'strict' })
+const config = {
+  port: process.env.PORT,
+  env: process.env.NODE_ENV
+}
 
-module.exports = config
+const result = schema.validate(config, {
+  abortEarly: false
+})
+
+if (result.error) {
+  throw new Error(`The server config is invalid. ${result.error.message}`)
+}
+
+const value = result.value
+
+value.isDev = value.env === 'development'
+value.isProd = value.env === 'production'
+
+module.exports = value

@@ -2,7 +2,6 @@
 {{- define "fcp-pds-data-retention.config-map" -}}
 data:
   NODE_ENV: {{ .Values.environment }}
-  PORT: {{ .Values.container.port | quote }}
   APPINSIGHTS_CLOUDROLE: {{ .Chart.Name | quote }}
   PROCESSING_ACTIVE: {{ quote .Values.container.processingActive }}
   POLLING_INTERVAL: {{ quote .Values.container.pollingInterval }}
