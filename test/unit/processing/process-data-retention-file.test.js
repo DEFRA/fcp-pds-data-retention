@@ -163,27 +163,32 @@ describe('processDataRetentionFile', () => {
     const filename = 'retention-data.zip'
     const error = new Error('Download failed')
     storage.downloadFileAsStream.mockRejectedValueOnce(error)
+    storage.deleteFile.mockResolvedValue(undefined)
 
-    await processDataRetentionFile(filename)
+    await expect(processDataRetentionFile(filename)).rejects.toThrow('Download failed')
 
     expect(console.error).toHaveBeenCalledWith(`Error thrown processing ${filename}`)
+    expect(storage.deleteFile).toHaveBeenCalledWith(filename)
   })
 
   test('should delete file when error occurs', async () => {
     const filename = 'retention-data.zip'
     const error = new Error('Unzip failed')
     unzipAndUpload.mockRejectedValueOnce(error)
+    storage.deleteFile.mockResolvedValue(undefined)
 
-    await processDataRetentionFile(filename)
+    await expect(processDataRetentionFile(filename)).rejects.toThrow('Unzip failed')
 
     expect(storage.deleteFile).toHaveBeenCalledWith(filename)
   })
 
   test('should handle error from unzipAndUpload', async () => {
     const filename = 'retention-data.zip'
-    unzipAndUpload.mockRejectedValueOnce(new Error('Unzip error'))
+    const error = new Error('Unzip error')
+    unzipAndUpload.mockRejectedValueOnce(error)
+    storage.deleteFile.mockResolvedValue(undefined)
 
-    await processDataRetentionFile(filename)
+    await expect(processDataRetentionFile(filename)).rejects.toThrow('Unzip error')
 
     expect(console.error).toHaveBeenCalledWith(`Error thrown processing ${filename}`)
     expect(storage.deleteFile).toHaveBeenCalledWith(filename)
@@ -194,8 +199,9 @@ describe('processDataRetentionFile', () => {
     const uploadedFile = 'retention-data.csv'
     unzipAndUpload.mockResolvedValueOnce([uploadedFile])
     parseRetentionFile.mockRejectedValueOnce(new Error('Parse error'))
+    storage.deleteFile.mockResolvedValue(undefined)
 
-    await processDataRetentionFile(filename)
+    await expect(processDataRetentionFile(filename)).rejects.toThrow('Parse error')
 
     expect(console.error).toHaveBeenCalledWith(`Error thrown processing ${filename}`)
     expect(storage.deleteFile).toHaveBeenCalledWith(filename)
@@ -207,8 +213,9 @@ describe('processDataRetentionFile', () => {
     unzipAndUpload.mockResolvedValueOnce([uploadedFile])
     parseRetentionFile.mockResolvedValueOnce(true)
     storage.archiveFile.mockRejectedValueOnce(new Error('Archive error'))
+    storage.deleteFile.mockResolvedValue(undefined)
 
-    await processDataRetentionFile(filename)
+    await expect(processDataRetentionFile(filename)).rejects.toThrow('Archive error')
 
     expect(console.error).toHaveBeenCalledWith(`Error thrown processing ${filename}`)
     expect(storage.deleteFile).toHaveBeenCalledWith(filename)
@@ -220,8 +227,9 @@ describe('processDataRetentionFile', () => {
     unzipAndUpload.mockResolvedValueOnce([uploadedFile])
     parseRetentionFile.mockResolvedValueOnce(false)
     storage.quarantineFile.mockRejectedValueOnce(new Error('Quarantine error'))
+    storage.deleteFile.mockResolvedValue(undefined)
 
-    await processDataRetentionFile(filename)
+    await expect(processDataRetentionFile(filename)).rejects.toThrow('Quarantine error')
 
     expect(console.error).toHaveBeenCalledWith(`Error thrown processing ${filename}`)
     expect(storage.deleteFile).toHaveBeenCalledWith(filename)
