@@ -24,6 +24,7 @@ const processDataRetentionFile = async (filename) => {
   } catch (err) {
     console.error(`Error thrown processing ${filename}`)
     await storage.deleteFile(filename)
+    throw err
   }
 }
 

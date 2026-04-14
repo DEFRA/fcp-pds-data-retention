@@ -1,6 +1,4 @@
-const routes = [].concat(
-  require('../routes/health')
-)
+const routes = [require('../routes/health')].flat()
 
 module.exports = {
   plugin: {

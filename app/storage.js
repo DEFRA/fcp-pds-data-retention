@@ -47,7 +47,7 @@ const getInboundFile = async () => {
   containersInitialised ?? await initialiseContainers()
 
   const prefix = `${storageConfig.inboundFolder}/FCP_PDS_SchemeClosures_`
-  const regex = new RegExp(`^${prefix}\\d{14}\\.zip$`)
+  const regex = new RegExp(String.raw`^${prefix}\d{14}\.zip$`)
 
   const matchedFiles = []
   // specify prefix to ignore archive and quarantine folders, as well as default.txt file
