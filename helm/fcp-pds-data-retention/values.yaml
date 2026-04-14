@@ -13,9 +13,15 @@ labels: {}
 
 containerConfigMap: {}
 
-containerSecret: {}
+containerSecret:
+  name: fcp-pds-data-retention
+  type: Opaque
 
-deployment: {}
+deployment:
+  minReplicas: 1
+  maxReplicas: 1
+  cpuThreshold: 50
+  memoryThreshold: 70
 
 port: &port 3000
 
