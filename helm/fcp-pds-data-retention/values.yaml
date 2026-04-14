@@ -6,10 +6,11 @@ namespace: fcp-pds
 workstream: fcp-pds
 image: fcp-pds-data-retention
 
+labels:
+  component: service
+
 appInsights:
   connectionString:
-
-labels: {}
 
 containerConfigMap:
   name: fcp-pds-data-retention-config-map
@@ -24,7 +25,7 @@ deployment:
   cpuThreshold: 50
   memoryThreshold: 70
 
-port: &port 3000
+port: &port 3024
 
 container:
   resourceTier: M
@@ -48,18 +49,18 @@ postgresService:
 livenessProbe:
   path: /healthz
   port: *port
-  initialDelaySeconds: 20
-  periodSeconds: 10
-  failureThreshold: 3
-  timeoutSeconds: 5
+  initialDelaySeconds: 70
+  periodSeconds: 120
+  failureThreshold: 5
+  timeoutSeconds: 30
 
 readinessProbe:
   path: /healthy
   port: *port
-  initialDelaySeconds: 30
-  periodSeconds: 10
-  failureThreshold: 3
-  timeoutSeconds: 5
+  initialDelaySeconds: 60
+  periodSeconds: 120
+  failureThreshold: 5
+  timeoutSeconds: 30
 
 workloadIdentity: true
 

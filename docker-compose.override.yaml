@@ -6,6 +6,9 @@ services:
     build:
       target: development
     image: fcp-pds-data-retention-development
+    ports:
+      - "3024:3024"
+      - "9245:9229"
     container_name: fcp-pds-data-retention-development
     volumes:
       - ./app:/home/node/app
