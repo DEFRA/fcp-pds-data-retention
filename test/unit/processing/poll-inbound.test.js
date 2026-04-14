@@ -1,4 +1,6 @@
-jest.mock('../../../app/storage')
+jest.mock('../../../app/storage', () => ({
+  getInboundFile: jest.fn()
+}))
 const storage = require('../../../app/storage')
 const processDataRetentionFile = require('../../../app/processing/process-data-retention-file')
 const pollInbound = require('../../../app/processing/poll-inbound')

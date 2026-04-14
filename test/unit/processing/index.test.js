@@ -1,9 +1,9 @@
+jest.mock('../../../app/config/processing')
 const processingConfig = require('../../../app/config/processing')
+jest.mock('../../../app/processing/poll-inbound')
 const pollInbound = require('../../../app/processing/poll-inbound')
 const { start } = require('../../../app/processing/index')
 
-jest.mock('../../../app/config/processing')
-jest.mock('../../../app/processing/poll-inbound')
 jest.useFakeTimers()
 jest.spyOn(console, 'log').mockImplementation()
 

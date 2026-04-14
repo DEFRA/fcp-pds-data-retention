@@ -1,4 +1,9 @@
-jest.mock('../../../app/storage')
+jest.mock('../../../app/storage', () => ({
+  downloadFileAsStream: jest.fn(),
+  deleteFile: jest.fn(),
+  archiveFile: jest.fn(),
+  quarantineFile: jest.fn()
+}))
 const storage = require('../../../app/storage')
 const { parseRetentionFile } = require('../../../app/processing/parse-retention-file')
 const { unzipAndUpload } = require('../../../app/processing/unzip-and-upload')
