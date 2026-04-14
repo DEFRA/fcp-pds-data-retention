@@ -1,3 +1,6 @@
+jest.mock('../../../app/storage', () => ({
+  getInboundFile: jest.fn()
+}))
 jest.mock('../../../app/config/processing')
 const processingConfig = require('../../../app/config/processing')
 jest.mock('../../../app/processing/poll-inbound')
