@@ -14,8 +14,8 @@ describe('processing config', () => {
     const config = require('../../../app/config/processing')
 
     expect(config.processingActive).toBe(true)
-    expect(config.pollingInterval).toBe(3600000)
-    expect(config.publishingInterval).toBe(3600000)
+    expect(config.pollingInterval).toBe(60000)
+    expect(config.publishingInterval).toBe(60000)
   })
 
   test('uses environment variables when provided', () => {

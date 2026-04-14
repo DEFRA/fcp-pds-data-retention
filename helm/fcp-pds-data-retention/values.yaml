@@ -23,8 +23,8 @@ container:
   resourceTier: M
   port: *port
   processingActive: true
-  pollingInterval: 3600000
-  publishingInterval: 3600000
+  pollingInterval: 60000
+  publishingInterval: 60000
   azureStorageConnectionString: dummy
   azureStorageUseConnectionString: false
   azureStorageAccountName: fcppds

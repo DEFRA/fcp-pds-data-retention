@@ -1,11 +1,11 @@
 const Joi = require('joi')
 
-const sixtyMinutes = 3600000
+const oneMinute = 60000
 
 const schema = Joi.object({
   processingActive: Joi.boolean().default(true),
-  pollingInterval: Joi.number().default(sixtyMinutes),
-  publishingInterval: Joi.number().default(sixtyMinutes)
+  pollingInterval: Joi.number().default(oneMinute),
+  publishingInterval: Joi.number().default(oneMinute)
 })
 
 const config = {
