@@ -15,7 +15,7 @@ describe('server config', () => {
 
     expect(config.get('env')).toBe('test')
     expect(config.get('host')).toBe('0.0.0.0')
-    expect(config.get('port')).toBe(3000)
+    expect(config.get('port')).toBe(3024)
     expect(config.get('isDev')).toBe(false)
   })
 
