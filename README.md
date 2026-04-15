@@ -1,3 +1,7 @@
+# FCP Payment & Document Services Data Retention Service
+
+Service responsible for reading and distributing data regarding Defra farming agreement end dates. The service reads ZIP files containing a CSV with the data retention data, including FRN, Agreement Number, Scheme and End Date. Using this, a database table is updated with these details, which is then polled at regular intervals to determine data past its 7 year retention period. Assuming this has passed, the service distributes a JSON message to a dedicated service bus topic and wipes the data from its own database.
+
 ## Prerequisites
 
 - Docker

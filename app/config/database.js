@@ -1,4 +1,5 @@
 const { DefaultAzureCredential, getBearerTokenProvider } = require('@azure/identity')
+const { stringToBoolean } = require('../helpers/string-to-boolean')
 const defaultPort = 5432
 
 function isProd () {
@@ -38,7 +39,7 @@ const dbConfig = {
   host: process.env.POSTGRES_HOST || 'fcp-pds-data-retention',
   password: process.env.POSTGRES_PASSWORD,
   port: process.env.POSTGRES_PORT || defaultPort,
-  logging: process.env.POSTGRES_LOGGING || false,
+  logging: stringToBoolean(process.env.POSTGRES_LOGGING || false),
   retry,
   schema: process.env.POSTGRES_SCHEMA_NAME || 'public',
   username: process.env.POSTGRES_USERNAME

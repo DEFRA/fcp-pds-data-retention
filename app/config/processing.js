@@ -1,4 +1,5 @@
 const Joi = require('joi')
+const { stringToBoolean } = require('../helpers/string-to-boolean')
 
 const oneMinute = 60000
 
@@ -9,7 +10,7 @@ const schema = Joi.object({
 })
 
 const config = {
-  processingActive: process.env.PROCESSING_ACTIVE,
+  processingActive: stringToBoolean(process.env.PROCESSING_ACTIVE),
   pollingInterval: process.env.POLLING_INTERVAL,
   publishingInterval: process.env.PUBLISHING_INTERVAL
 }

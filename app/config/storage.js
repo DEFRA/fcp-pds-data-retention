@@ -1,4 +1,5 @@
 const Joi = require('joi')
+const { stringToBoolean } = require('../helpers/string-to-boolean')
 
 const schema = Joi.object({
   connectionStr: Joi.string().when('useConnectionStr', { is: true, then: Joi.required(), otherwise: Joi.allow('').optional() }),
@@ -19,8 +20,8 @@ const config = {
   inboundFolder: 'data_retention',
   archiveFolder: 'archive',
   quarantineFolder: 'quarantine',
-  useConnectionStr: process.env.AZURE_STORAGE_USE_CONNECTION_STRING,
-  createContainers: process.env.AZURE_STORAGE_CREATE_CONTAINERS,
+  useConnectionStr: stringToBoolean(process.env.AZURE_STORAGE_USE_CONNECTION_STRING),
+  createContainers: stringToBoolean(process.env.AZURE_STORAGE_CREATE_CONTAINERS),
   managedIdentityClientId: process.env.AZURE_CLIENT_ID
 }
 

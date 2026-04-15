@@ -97,9 +97,9 @@ const downloadFileAsStream = async (filename) => {
     const blob = await getBlob(filename)
     const downloadResponse = await blob.download(0)
     return downloadResponse.readableStreamBody
-  } catch (e) {
-    console.log(`An error occurred trying to download blob: ${e.message}`)
-    throw e
+  } catch (err) {
+    console.log(`An error occurred trying to download blob: ${err.message}`)
+    throw err
   }
 }
 
