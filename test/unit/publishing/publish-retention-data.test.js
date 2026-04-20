@@ -178,7 +178,7 @@ describe('publishRetentionData', () => {
     consoleSpy.mockRestore()
   })
 
-  test('should map agreementNumber and set useContractNumber correctly', async () => {
+  test('should map agreementNumber and set usesContractNumber correctly', async () => {
     const mockData = [
       { retentionDataId: 1, frn: 'FRN001', agreementNumber: '123', schemeId: SFI_PILOT },
       { retentionDataId: 2, frn: 'FRN002', agreementNumber: '456', schemeId: CS },
@@ -195,15 +195,15 @@ describe('publishRetentionData', () => {
     expect(getMappedAgreementNumber).toHaveBeenCalledTimes(3)
     expect(sendPublishMessage).toHaveBeenCalledWith(expect.objectContaining({
       agreementNumber: 'mapped-123',
-      useContractNumber: true
+      usesContractNumber: true
     }))
     expect(sendPublishMessage).toHaveBeenCalledWith(expect.objectContaining({
       agreementNumber: 'mapped-456',
-      useContractNumber: true
+      usesContractNumber: true
     }))
     expect(sendPublishMessage).toHaveBeenCalledWith(expect.objectContaining({
       agreementNumber: 'mapped-789',
-      useContractNumber: false
+      usesContractNumber: false
     }))
   })
 })

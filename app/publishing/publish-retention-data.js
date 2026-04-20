@@ -10,7 +10,7 @@ const publishRetentionData = async () => {
     console.log(`Data passed 7 year retention for frn: ${pending.frn}, agreement number: ${pending.agreementNumber}`)
     pending.simplifiedAgreementNumber = pendingRetentionData.agreementNumber
     pending.agreementNumber = getMappedAgreementNumber(pending.schemeId, pending.agreementNumber)
-    pending.useContractNumber = [SFI_PILOT, CS].includes(pending.schemeId)
+    pending.usesContractNumber = [SFI_PILOT, CS].includes(pending.schemeId)
     await sendPublishMessage(pending)
     await db.retentionData.destroy({
       where: { retentionDataId: pending.retentionDataId }
