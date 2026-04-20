@@ -1,11 +1,14 @@
 jest.mock('../../../app/publishing/get-pending-retention-data')
 jest.mock('../../../app/messaging/send-publish-message')
 jest.mock('../../../app/data')
+jest.mock('../../../app/publishing/get-mapped-agreement-number')
 
 const { getPendingRetentionData } = require('../../../app/publishing/get-pending-retention-data')
 const sendPublishMessage = require('../../../app/messaging/send-publish-message')
 const db = require('../../../app/data')
+const { getMappedAgreementNumber } = require('../../../app/publishing/get-mapped-agreement-number')
 const { publishRetentionData } = require('../../../app/publishing/publish-retention-data')
+const { SFI_PILOT, CS } = require('../../../app/constants/schemes')
 
 describe('publishRetentionData', () => {
   beforeEach(() => {
@@ -14,6 +17,7 @@ describe('publishRetentionData', () => {
       destroy: jest.fn().mockResolvedValue(1)
     }
     sendPublishMessage.mockResolvedValue(undefined)
+    getMappedAgreementNumber.mockImplementation((schemeId, agreementNumber) => agreementNumber)
   })
 
   test('should get pending retention data', async () => {
@@ -45,7 +49,10 @@ describe('publishRetentionData', () => {
 
     await publishRetentionData()
 
-    expect(sendPublishMessage).toHaveBeenCalledWith(mockData[0])
+    expect(sendPublishMessage).toHaveBeenCalledWith(expect.objectContaining({
+      retentionDataId: 1,
+      frn: 'FRN001',
+    }))
   })
 
   test('should destroy record with correct retentionDataId', async () => {
@@ -169,5 +176,34 @@ describe('publishRetentionData', () => {
     )
     expect(logCalls).toHaveLength(3)
     consoleSpy.mockRestore()
+  })
+
+  test('should map agreementNumber and set useContractNumber correctly', async () => {
+    const mockData = [
+      { retentionDataId: 1, frn: 'FRN001', agreementNumber: '123', schemeId: SFI_PILOT },
+      { retentionDataId: 2, frn: 'FRN002', agreementNumber: '456', schemeId: CS },
+      { retentionDataId: 3, frn: 'FRN003', agreementNumber: '789', schemeId: 'OTHER' }
+    ]
+    getPendingRetentionData.mockResolvedValue(mockData)
+
+    getMappedAgreementNumber.mockImplementation((schemeId, agreementNumber) => {
+      return `mapped-${agreementNumber}`
+    })
+
+    await publishRetentionData()
+
+    expect(getMappedAgreementNumber).toHaveBeenCalledTimes(3)
+    expect(sendPublishMessage).toHaveBeenCalledWith(expect.objectContaining({
+      agreementNumber: 'mapped-123',
+      useContractNumber: true
+    }))
+    expect(sendPublishMessage).toHaveBeenCalledWith(expect.objectContaining({
+      agreementNumber: 'mapped-456',
+      useContractNumber: true
+    }))
+    expect(sendPublishMessage).toHaveBeenCalledWith(expect.objectContaining({
+      agreementNumber: 'mapped-789',
+      useContractNumber: false
+    }))
   })
 })
