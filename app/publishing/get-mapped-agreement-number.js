@@ -11,7 +11,7 @@ const getMappedAgreementNumber = (schemeId, agreementNumber) => {
     case SFI:
       return stringifiedAgreement.padStart(fullAgreementLength, '0')
     case CS:
-      return 'C' + stringifiedAgreement.padStart(fullAgreementLength, '0')
+      return 'C' + stringifiedAgreement.padStart(fullAgreementLength - 1, '0')
     case COHT_REVENUE:
     case SFI_EXPANDED:
       return 'E' + stringifiedAgreement.padStart(fullAgreementLength - 1, '0')
