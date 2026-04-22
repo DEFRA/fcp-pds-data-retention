@@ -11,7 +11,6 @@ const sendPublishMessage = async (body) => {
       type: RETENTION_DATA_EXPIRED,
       source: SOURCE
     }
-
     sender = new MessageSender(messageConfig.retentionTopic)
     await sender.sendMessage(message)
   } catch (error) {

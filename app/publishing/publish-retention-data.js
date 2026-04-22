@@ -8,7 +8,7 @@ const publishRetentionData = async () => {
   const pendingRetentionData = await getPendingRetentionData()
   for (const pending of pendingRetentionData) {
     console.log(`Data passed 7 year retention for frn: ${pending.frn}, agreement number: ${pending.agreementNumber}`)
-    pending.simplifiedAgreementNumber = pendingRetentionData.agreementNumber
+    pending.simplifiedAgreementNumber = pending.agreementNumber
     pending.agreementNumber = getMappedAgreementNumber(pending.schemeId, pending.agreementNumber)
     pending.usesContractNumber = [SFI_PILOT, CS].includes(pending.schemeId)
     await sendPublishMessage(pending)

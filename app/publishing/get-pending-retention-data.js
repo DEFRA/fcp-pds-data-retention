@@ -11,6 +11,7 @@ const getPendingRetentionData = async () => {
       endDate: { [db.Sequelize.Op.lt]: retentionYearsAgo }
     },
     limit: publishingLimit,
+    raw: true,
     lock: true
   })
 }
