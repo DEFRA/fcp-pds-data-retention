@@ -1,18 +1,11 @@
 const { mapRetentionData } = require('../../../app/processing/map-retention-data')
-const { BPS, LUMP_SUMS } = require('../../../app/constants/scheme-names')
-const { BPS: BPS_ID } = require('../../../app/constants/schemes')
-
-jest.mock('../../../app/constants/scheme-names')
-jest.mock('../../../app/constants/schemes')
+const schemeNames = require('../../../app/constants/scheme-names')
+const schemeIds = require('../../../app/constants/schemes')
 
 describe('mapRetentionData', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
-
   test('should return object with successful and unsuccessful arrays', () => {
     const retentionData = [
-      { frn: 123456, scheme: BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
+      { frn: 123456, scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
@@ -24,33 +17,56 @@ describe('mapRetentionData', () => {
 
   test('should map recognized scheme to schemeId', () => {
     const retentionData = [
-      { frn: 123456, scheme: BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
+      { frn: 123456, scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
-    expect(result.successful[0]).toHaveProperty('schemeId', 6)
+
+    expect(result.successful).toHaveLength(1)
+    expect(result.successful[0]).toHaveProperty('schemeId', schemeIds.BPS)
+  })
+
+  test('should handle multiple schemeKeys matching the same scheme name', () => {
+    const retentionData = [
+      { frn: 789012, scheme: 'CS HT', agreementNumber: 'AG002', endDate: '2026-12-31' }
+    ]
+
+    const result = mapRetentionData(retentionData)
+
+    expect(result.successful).toHaveLength(2)
+
+    const schemeIdsMapped = result.successful.map(item => item.schemeId).sort((a, b) => a - b)
+    expect(schemeIdsMapped).toEqual([schemeIds.COHT_CAPITAL, schemeIds.COHT_REVENUE].sort((a, b) => a - b))
+
+    for (const item of result.successful) {
+      expect(item).not.toHaveProperty('scheme')
+    }
   })
 
   test('should remove scheme property from successful data', () => {
     const retentionData = [
-      { frn: 123456, scheme: BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
+      { frn: 123456, scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
 
-    expect(result.successful[0]).not.toHaveProperty('scheme')
+    for (const item of result.successful) {
+      expect(item).not.toHaveProperty('scheme')
+    }
   })
 
   test('should preserve all other properties in successful data', () => {
     const retentionData = [
-      { frn: 123456, scheme: BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
+      { frn: 123456, scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
 
-    expect(result.successful[0]).toHaveProperty('frn', 123456)
-    expect(result.successful[0]).toHaveProperty('agreementNumber', 'AG001')
-    expect(result.successful[0]).toHaveProperty('endDate', '2025-12-31')
+    for (const item of result.successful) {
+      expect(item).toHaveProperty('frn', 123456)
+      expect(item).toHaveProperty('agreementNumber', 'AG001')
+      expect(item).toHaveProperty('endDate', '2025-12-31')
+    }
   })
 
   test('should classify unrecognized scheme as unsuccessful', () => {
@@ -68,38 +84,31 @@ describe('mapRetentionData', () => {
 
   test('should handle multiple successful items', () => {
     const retentionData = [
-      { frn: 111111, scheme: BPS, agreementNumber: 'AG001', endDate: '2025-12-31' },
-      { frn: 222222, scheme: LUMP_SUMS, agreementNumber: 'AG002', endDate: '2026-12-31' }
+      { frn: 111111, scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' },
+      { frn: 222222, scheme: schemeNames.LUMP_SUMS, agreementNumber: 'AG002', endDate: '2026-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
 
-    expect(result.successful).toHaveLength(2)
-    expect(result.successful[0].schemeId).toBe(6)
-    expect(result.successful[1].schemeId).toBe(3)
+    expect(result.successful.filter(item => item.frn === 111111)).toHaveLength(1)
+    expect(result.successful.filter(item => item.frn === 222222)).toHaveLength(1)
+
+    expect(result.successful.find(item => item.frn === 111111).schemeId).toBe(schemeIds.BPS)
+    expect(result.successful.find(item => item.frn === 222222).schemeId).toBe(schemeIds.LUMP_SUMS)
   })
 
   test('should handle mixed successful and unsuccessful data', () => {
     const retentionData = [
-      { frn: 111111, scheme: BPS, agreementNumber: 'AG001' },
+      { frn: 111111, scheme: schemeNames.BPS, agreementNumber: 'AG001' },
       { frn: 222222, scheme: 'INVALID', agreementNumber: 'AG002' },
-      { frn: 333333, scheme: BPS, agreementNumber: 'AG003' }
+      { frn: 333333, scheme: schemeNames.BPS, agreementNumber: 'AG003' }
     ]
 
     const result = mapRetentionData(retentionData)
 
-    expect(result.successful).toHaveLength(2)
+    expect(result.successful.filter(item => item.frn === 111111)).toHaveLength(1)
+    expect(result.successful.filter(item => item.frn === 333333)).toHaveLength(1)
     expect(result.unsuccessful).toHaveLength(1)
-  })
-
-  test('should find scheme key by matching scheme name value', () => {
-    const retentionData = [
-      { frn: 123456, scheme: BPS, agreementNumber: 'AG001' }
-    ]
-
-    const result = mapRetentionData(retentionData)
-
-    expect(result.successful[0].schemeId).toBe(BPS_ID)
   })
 
   test('should handle empty retention data array', () => {
