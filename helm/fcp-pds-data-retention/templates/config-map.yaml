@@ -3,6 +3,7 @@
 data:
   NODE_ENV: {{ .Values.environment }}
   APPINSIGHTS_CLOUDROLE: {{ .Chart.Name | quote }}
+  OTEL_SERVICE_NAME: {{ quote .Values.name }} 
   PROCESSING_ACTIVE: {{ quote .Values.container.processingActive }}
   POLLING_INTERVAL: {{ quote .Values.container.pollingInterval }}
   PUBLISHING_INTERVAL: {{ quote .Values.container.publishingInterval }}

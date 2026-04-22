@@ -1,56 +1,38 @@
-const appInsights = require('applicationinsights')
-
-describe('setup', () => {
-  let originalEnv
-  let consoleLogSpy
-  let setupMock
-  let startMock
-  let defaultClientBackup
+describe('Application Insights', () => {
+  const DEFAULT_ENV = process.env
+  let useAzureMonitor
 
   beforeEach(() => {
-    originalEnv = { ...process.env }
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => { })
-    startMock = jest.fn()
-    setupMock = jest.fn(() => ({ start: startMock }))
-    jest.spyOn(appInsights, 'setup').mockImplementation(setupMock)
+    jest.resetModules()
 
-    defaultClientBackup = appInsights.defaultClient
+    jest.mock('@azure/monitor-opentelemetry', () => ({
+      useAzureMonitor: jest.fn(),
+    }))
 
-    appInsights.defaultClient = {
-      context: {
-        keys: { cloudRole: 'cloudRoleTag' },
-        tags: {}
-      }
-    }
+    useAzureMonitor = require('@azure/monitor-opentelemetry').useAzureMonitor
+
+    process.env = { ...DEFAULT_ENV }
   })
 
-  afterEach(() => {
-    process.env = originalEnv
-    jest.restoreAllMocks()
-    appInsights.defaultClient = defaultClientBackup
+  afterAll(() => {
+    process.env = DEFAULT_ENV
   })
 
-  test('starts appInsights and sets cloud role tag when APPINSIGHTS_CONNECTIONSTRING is set', () => {
-    process.env.APPINSIGHTS_CONNECTIONSTRING = 'fake-connection-string'
-    process.env.APPINSIGHTS_CLOUDROLE = 'myAppRole'
+  test('does not setup application insights if no connection string', () => {
+    process.env.APPINSIGHTS_CONNECTIONSTRING = undefined
+    const appInsights = require('../../app/insights')
 
-    const { setup } = require('../../app/insights')
-    setup()
+    appInsights.setup()
 
-    expect(setupMock).toHaveBeenCalledWith('fake-connection-string')
-    expect(startMock).toHaveBeenCalled()
-    expect(consoleLogSpy).toHaveBeenCalledWith('App Insights running')
-    expect(appInsights.defaultClient.context.tags.cloudRoleTag).toBe('myAppRole')
+    expect(useAzureMonitor).not.toHaveBeenCalled()
   })
 
-  test('logs not running when APPINSIGHTS_CONNECTIONSTRING is not set', () => {
-    delete process.env.APPINSIGHTS_CONNECTIONSTRING
+  test('does setup application insights if connection string present', () => {
+    process.env.APPINSIGHTS_CONNECTIONSTRING = 'test-connection-string'
+    const appInsights = require('../../app/insights')
 
-    const { setup } = require('../../app/insights')
-    setup()
+    appInsights.setup()
 
-    expect(setupMock).not.toHaveBeenCalled()
-    expect(startMock).not.toHaveBeenCalled()
-    expect(consoleLogSpy).toHaveBeenCalledWith('App Insights not running')
+    expect(useAzureMonitor).toHaveBeenCalledTimes(1)
   })
 })
