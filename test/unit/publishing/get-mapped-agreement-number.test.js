@@ -8,7 +8,8 @@ const {
   LUMP_SUMS,
   SFI_PILOT,
   SFI23,
-  SFI_EXPANDED
+  SFI_EXPANDED,
+  BPS
 } = require('../../../app/constants/schemes')
 
 describe('getMappedAgreementNumber', () => {
@@ -17,9 +18,14 @@ describe('getMappedAgreementNumber', () => {
     expect(getMappedAgreementNumber(SFI, '789')).toBe('00000789')
   })
 
-  test('prepends C and pads to total length 8 for CS', () => {
-    expect(getMappedAgreementNumber(CS, 123456)).toBe('C0123456')
-    expect(getMappedAgreementNumber(CS, '789')).toBe('C0000789')
+  test('prepends A and pads to total length 8 for CS', () => {
+    expect(getMappedAgreementNumber(CS, 123456)).toBe('A0123456')
+    expect(getMappedAgreementNumber(CS, '789')).toBe('A0000789')
+  })
+
+  test('prepends C and pads to total length 8 for BPS', () => {
+    expect(getMappedAgreementNumber(BPS, 123456)).toBe('C0123456')
+    expect(getMappedAgreementNumber(BPS, '789')).toBe('C0000789')
   })
 
   test('prepends E and pads to total length 8 for COHT_REVENUE and SFI_EXPANDED', () => {
@@ -55,6 +61,6 @@ describe('getMappedAgreementNumber', () => {
 
   test('handles numeric zero agreement number correctly', () => {
     expect(getMappedAgreementNumber(SFI, 0)).toBe('00000000')
-    expect(getMappedAgreementNumber(CS, 0)).toBe('C0000000')
+    expect(getMappedAgreementNumber(CS, 0)).toBe('A0000000')
   })
 })

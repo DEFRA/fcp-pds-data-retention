@@ -1,4 +1,4 @@
-const { SFI, CS, COHT_CAPITAL, COHT_REVENUE, DELINKED, LUMP_SUMS, SFI_PILOT, SFI23, SFI_EXPANDED } = require('../constants/schemes')
+const { SFI, CS, COHT_CAPITAL, COHT_REVENUE, DELINKED, LUMP_SUMS, SFI_PILOT, SFI23, SFI_EXPANDED, BPS } = require('../constants/schemes')
 
 const fullAgreementLength = 8
 
@@ -11,6 +11,8 @@ const getMappedAgreementNumber = (schemeId, agreementNumber) => {
     case SFI:
       return stringifiedAgreement.padStart(fullAgreementLength, '0')
     case CS:
+      return 'A' + stringifiedAgreement.padStart(fullAgreementLength - 1, '0')
+    case BPS:
       return 'C' + stringifiedAgreement.padStart(fullAgreementLength - 1, '0')
     case COHT_REVENUE:
     case SFI_EXPANDED:
