@@ -1,7 +1,7 @@
 const Joi = require('joi')
 
 const schema = Joi.object({
-  port: Joi.number().default(3024),
+  port: Joi.number().default(3076),
   env: Joi.string().valid('development', 'test', 'production').default('development')
 })
 

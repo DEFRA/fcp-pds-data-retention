@@ -27,7 +27,7 @@ deployment:
 
 container:
   resourceTier: M
-  port: 3024
+  port: 3076
   processingActive: true
   pollingInterval: 60000
   publishingInterval: 60000
@@ -46,7 +46,7 @@ postgresService:
 
 livenessProbe:
   path: /healthz
-  port: 3024
+  port: 3076
   initialDelaySeconds: 70
   periodSeconds: 120
   failureThreshold: 5
@@ -54,7 +54,7 @@ livenessProbe:
 
 readinessProbe:
   path: /healthy
-  port: 3024
+  port: 3076
   initialDelaySeconds: 60
   periodSeconds: 120
   failureThreshold: 5

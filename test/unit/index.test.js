@@ -34,7 +34,7 @@ describe('index', () => {
     mockServer = {
       start: jest.fn().mockResolvedValue(undefined),
       info: {
-        uri: 'http://localhost:3024'
+        uri: 'http://localhost:3076'
       }
     }
 
