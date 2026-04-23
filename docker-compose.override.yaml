@@ -24,7 +24,7 @@ services:
 
   fcp-pds-data-retention-postgres:
     ports:
-      - "5490:5432"
+      - "5492:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
