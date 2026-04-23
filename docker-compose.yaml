@@ -5,7 +5,7 @@ services:
       target: production
     image: fcp-pds-data-retention
     ports:
-      - "3076:3017"
+      - "3076:3076"
       - "9274:9229"
     container_name: fcp-pds-data-retention
     depends_on:

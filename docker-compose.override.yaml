@@ -7,6 +7,7 @@ services:
       target: development
     image: fcp-pds-data-retention-development
     ports:
+      - "3076:3076"
       - "9245:9229"
     container_name: fcp-pds-data-retention-development
     volumes:
