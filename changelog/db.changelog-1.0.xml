@@ -80,6 +80,7 @@
     <createIndex tableName="retentionData" indexName="uq_retentionData_frn_agreementNumber" unique="true">
       <column name="frn"/>
       <column name="agreementNumber"/>
+      <column name="schemeId" />
     </createIndex>
 </changeSet>
 </databaseChangeLog>

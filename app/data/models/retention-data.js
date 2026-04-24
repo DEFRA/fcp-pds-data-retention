@@ -13,7 +13,7 @@ const defineRetentionData = (sequelize, DataTypes) => {
     indexes: [
       {
         unique: true,
-        fields: ['frn', 'agreementNumber']
+        fields: ['frn', 'schemeId', 'agreementNumber']
       }
     ]
   })
