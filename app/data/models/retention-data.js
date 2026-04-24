@@ -9,7 +9,13 @@ const defineRetentionData = (sequelize, DataTypes) => {
   {
     tableName: 'retentionData',
     freezeTableName: true,
-    timestamps: false
+    timestamps: false,
+    indexes: [
+      {
+        unique: true,
+        fields: ['frn', 'agreementNumber']
+      }
+    ]
   })
 
   retentionData.associate = (models) => {

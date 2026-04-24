@@ -75,5 +75,11 @@
   </changeSet>
   <changeSet author="Sam Plackett" id="5">
     <addForeignKeyConstraint baseColumnNames="schemeId" baseTableName="retentionData" constraintName="fk_retentionData_schemeId" referencedColumnNames="schemeId" referencedTableName="schemes" />
-  </changeSet>  
+  </changeSet>
+  <changeSet author="Sam Plackett" id="6">
+    <createIndex tableName="retentionData" indexName="uq_retentionData_frn_agreementNumber" unique="true">
+      <column name="frn"/>
+      <column name="agreementNumber"/>
+    </createIndex>
+</changeSet>
 </databaseChangeLog>

@@ -7,7 +7,9 @@ const saveValidRetentionData = async (validRetentionData) => {
       frn: Number(retentionData.frn)
     }
   })
-  return db.retentionData.bulkCreate(transformedData)
+  return db.retentionData.bulkCreate(transformedData, {
+    updateOnDuplicate: ['endDate']
+  })
 }
 
 module.exports = {
