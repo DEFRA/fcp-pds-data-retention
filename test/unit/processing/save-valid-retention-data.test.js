@@ -18,7 +18,7 @@ describe('saveValidRetentionData', () => {
 
     await saveValidRetentionData(validRetentionData)
 
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData)
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData, { updateOnDuplicate: ['endDate'] })
   })
 
   test('should save single retention data record', async () => {
@@ -29,7 +29,7 @@ describe('saveValidRetentionData', () => {
     await saveValidRetentionData(validRetentionData)
 
     expect(db.retentionData.bulkCreate).toHaveBeenCalledTimes(1)
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData)
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData, { updateOnDuplicate: ['endDate'] })
   })
 
   test('should save multiple retention data records', async () => {
@@ -41,7 +41,7 @@ describe('saveValidRetentionData', () => {
 
     await saveValidRetentionData(validRetentionData)
 
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData)
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData, { updateOnDuplicate: ['endDate'] })
   })
 
   test('should save empty array', async () => {
@@ -49,7 +49,7 @@ describe('saveValidRetentionData', () => {
 
     await saveValidRetentionData(validRetentionData)
 
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith([])
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith([], { updateOnDuplicate: ['endDate'] })
   })
 
   test('should return created records', async () => {
@@ -117,7 +117,7 @@ describe('saveValidRetentionData', () => {
 
     await saveValidRetentionData(validRetentionData)
 
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData)
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData, { updateOnDuplicate: ['endDate'] })
   })
 
   test('should handle large dataset', async () => {
@@ -130,7 +130,7 @@ describe('saveValidRetentionData', () => {
 
     await saveValidRetentionData(validRetentionData)
 
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData)
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData, { updateOnDuplicate: ['endDate'] })
   })
 
   test('should pass all properties to bulkCreate', async () => {
@@ -159,7 +159,7 @@ describe('saveValidRetentionData', () => {
 
     await saveValidRetentionData(validRetentionData)
 
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData)
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData, { updateOnDuplicate: ['endDate'] })
   })
 
   test('should handle concurrent saves', async () => {

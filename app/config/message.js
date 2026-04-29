@@ -11,8 +11,12 @@ const mqSchema = Joi.object({
   },
   retentionTopic: {
     address: Joi.string()
+  },
+  alertTopic: {
+    address: Joi.string()
   }
 })
+
 const mqConfig = {
   messageQueue: {
     host: process.env.MESSAGE_QUEUE_HOST,
@@ -24,6 +28,9 @@ const mqConfig = {
   },
   retentionTopic: {
     address: process.env.RETENTION_TOPIC_ADDRESS
+  },
+  alertTopic: {
+    address: process.env.ALERT_TOPIC_ADDRESS
   }
 }
 
@@ -36,7 +43,9 @@ if (mqResult.error) {
 }
 
 const retentionTopic = { ...mqResult.value.messageQueue, ...mqResult.value.retentionTopic }
+const alertTopic = { ...mqResult.value.messageQueue, ...mqResult.value.alertTopic }
 
 module.exports = {
-  retentionTopic
+  retentionTopic,
+  alertTopic
 }

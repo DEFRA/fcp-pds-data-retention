@@ -6,7 +6,7 @@
         "Queues": [],
         "Topics": [
           {
-            "Name": "ffc-pay-events",
+            "Name": "ffc-doc-alerting",
             "Properties": {
               "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",

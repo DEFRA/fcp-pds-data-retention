@@ -11,7 +11,7 @@ const processDataRetentionFile = async (filename) => {
     console.log(`Processed and deleted zip file: ${filename}`)
     for (const uploadedFile of uploadedFiles) {
       const fileStream = await storage.downloadFileAsStream(uploadedFile)
-      const parseSuccess = await parseRetentionFile(fileStream)
+      const parseSuccess = await parseRetentionFile(uploadedFile, fileStream)
 
       if (parseSuccess) {
         console.log(`Archiving ${uploadedFile}, successfully parsed file`)

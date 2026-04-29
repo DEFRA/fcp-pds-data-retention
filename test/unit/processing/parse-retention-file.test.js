@@ -2,13 +2,16 @@ const getRetentionDataFromFile = require('../../../app/processing/get-retention-
 const { mapRetentionData } = require('../../../app/processing/map-retention-data')
 const { handleParsedRetentionData } = require('../../../app/processing/handle-parsed-retention-data')
 const { parseRetentionFile } = require('../../../app/processing/parse-retention-file')
+const sendFileErrorEvent = require('../../../app/messaging/send-file-error-event')
 
 jest.mock('../../../app/processing/get-retention-data-from-file')
 jest.mock('../../../app/processing/map-retention-data')
 jest.mock('../../../app/processing/handle-parsed-retention-data')
+jest.mock('../../../app/messaging/send-file-error-event')
 
 describe('parseRetentionFile', () => {
   let mockFileStream
+  const filename = 'test-file.csv'
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -16,10 +19,16 @@ describe('parseRetentionFile', () => {
     getRetentionDataFromFile.mockResolvedValue([])
     mapRetentionData.mockReturnValue({ successful: [], unsuccessful: [] })
     handleParsedRetentionData.mockResolvedValue(true)
+    sendFileErrorEvent.mockResolvedValue(undefined)
+    jest.spyOn(console, 'error').mockImplementation(() => { })
+  })
+
+  afterEach(() => {
+    console.error.mockRestore()
   })
 
   test('should call getRetentionDataFromFile with fileStream', async () => {
-    await parseRetentionFile(mockFileStream)
+    await parseRetentionFile(filename, mockFileStream)
 
     expect(getRetentionDataFromFile).toHaveBeenCalledWith(mockFileStream)
   })
@@ -30,7 +39,7 @@ describe('parseRetentionFile', () => {
     ]
     getRetentionDataFromFile.mockResolvedValueOnce(parsedData)
 
-    await parseRetentionFile(mockFileStream)
+    await parseRetentionFile(filename, mockFileStream)
 
     expect(mapRetentionData).toHaveBeenCalledWith(parsedData)
   })
@@ -42,13 +51,13 @@ describe('parseRetentionFile', () => {
     }
     mapRetentionData.mockReturnValueOnce(mappedData)
 
-    await parseRetentionFile(mockFileStream)
+    await parseRetentionFile(filename, mockFileStream)
 
     expect(handleParsedRetentionData).toHaveBeenCalledWith(mappedData)
   })
 
   test('should return true on success', async () => {
-    const result = await parseRetentionFile(mockFileStream)
+    const result = await parseRetentionFile(filename, mockFileStream)
 
     expect(result).toBe(true)
   })
@@ -71,7 +80,7 @@ describe('parseRetentionFile', () => {
       return Promise.resolve(true)
     })
 
-    await parseRetentionFile(mockFileStream)
+    await parseRetentionFile(filename, mockFileStream)
 
     expect(callOrder).toEqual([
       'getRetentionDataFromFile',
@@ -80,47 +89,59 @@ describe('parseRetentionFile', () => {
     ])
   })
 
-  test('should return false when getRetentionDataFromFile fails', async () => {
-    getRetentionDataFromFile.mockRejectedValueOnce(new Error('File read failed'))
+  test('should return false and call sendFileErrorEvent when getRetentionDataFromFile fails', async () => {
+    const err = new Error('File read failed')
+    getRetentionDataFromFile.mockRejectedValueOnce(err)
 
-    const result = await parseRetentionFile(mockFileStream)
+    const result = await parseRetentionFile(filename, mockFileStream)
 
+    expect(sendFileErrorEvent).toHaveBeenCalledWith(filename, err)
+    expect(console.error).toHaveBeenCalledWith(`Error thrown processing ${filename}`)
+    expect(console.error).toHaveBeenCalledWith(err)
     expect(result).toBe(false)
   })
 
-  test('should return false when mapRetentionData fails', async () => {
+  test('should return false and call sendFileErrorEvent when mapRetentionData throws', async () => {
     getRetentionDataFromFile.mockResolvedValueOnce([{ frn: 123456 }])
+    const err = new Error('Mapping failed')
     mapRetentionData.mockImplementationOnce(() => {
-      throw new Error('Mapping failed')
+      throw err
     })
 
-    const result = await parseRetentionFile(mockFileStream)
+    const result = await parseRetentionFile(filename, mockFileStream)
 
+    expect(sendFileErrorEvent).toHaveBeenCalledWith(filename, err)
+    expect(console.error).toHaveBeenCalledWith(`Error thrown processing ${filename}`)
+    expect(console.error).toHaveBeenCalledWith(err)
     expect(result).toBe(false)
   })
 
-  test('should return false when handleParsedRetentionData fails', async () => {
-    handleParsedRetentionData.mockRejectedValueOnce(new Error('Handler failed'))
+  test('should return false and call sendFileErrorEvent when handleParsedRetentionData rejects', async () => {
+    const err = new Error('Handler failed')
+    handleParsedRetentionData.mockRejectedValueOnce(err)
 
-    const result = await parseRetentionFile(mockFileStream)
+    const result = await parseRetentionFile(filename, mockFileStream)
 
+    expect(sendFileErrorEvent).toHaveBeenCalledWith(filename, err)
+    expect(console.error).toHaveBeenCalledWith(`Error thrown processing ${filename}`)
+    expect(console.error).toHaveBeenCalledWith(err)
     expect(result).toBe(false)
   })
 
   test('should not call mapRetentionData if getRetentionDataFromFile fails', async () => {
     getRetentionDataFromFile.mockRejectedValueOnce(new Error('File read failed'))
 
-    await parseRetentionFile(mockFileStream)
+    await parseRetentionFile(filename, mockFileStream)
 
     expect(mapRetentionData).not.toHaveBeenCalled()
   })
 
-  test('should not call handleParsedRetentionData if mapRetentionData fails', async () => {
+  test('should not call handleParsedRetentionData if mapRetentionData throws', async () => {
     mapRetentionData.mockImplementationOnce(() => {
       throw new Error('Mapping failed')
     })
 
-    await parseRetentionFile(mockFileStream)
+    await parseRetentionFile(filename, mockFileStream)
 
     expect(handleParsedRetentionData).not.toHaveBeenCalled()
   })
@@ -141,7 +162,7 @@ describe('parseRetentionFile', () => {
     }
     mapRetentionData.mockReturnValueOnce(mappedData)
 
-    const result = await parseRetentionFile(mockFileStream)
+    const result = await parseRetentionFile(filename, mockFileStream)
 
     expect(result).toBe(true)
     expect(mapRetentionData).toHaveBeenCalledWith(parsedData)
@@ -152,7 +173,7 @@ describe('parseRetentionFile', () => {
     getRetentionDataFromFile.mockResolvedValueOnce([])
     mapRetentionData.mockReturnValueOnce({ successful: [], unsuccessful: [] })
 
-    const result = await parseRetentionFile(mockFileStream)
+    const result = await parseRetentionFile(filename, mockFileStream)
 
     expect(result).toBe(true)
   })
@@ -164,17 +185,19 @@ describe('parseRetentionFile', () => {
     }
     mapRetentionData.mockReturnValueOnce(mappedData)
 
-    const result = await parseRetentionFile(mockFileStream)
+    const result = await parseRetentionFile(filename, mockFileStream)
 
     expect(result).toBe(true)
     expect(handleParsedRetentionData).toHaveBeenCalledWith(mappedData)
   })
 
   test('should handle different error types', async () => {
-    getRetentionDataFromFile.mockRejectedValueOnce(new TypeError('Type error'))
+    const err = new TypeError('Type error')
+    getRetentionDataFromFile.mockRejectedValueOnce(err)
 
-    const result = await parseRetentionFile(mockFileStream)
+    const result = await parseRetentionFile(filename, mockFileStream)
 
+    expect(sendFileErrorEvent).toHaveBeenCalledWith(filename, err)
     expect(result).toBe(false)
   })
 })
