@@ -1,3 +1,4 @@
+const sendFileErrorEvent = require('../messaging/send-file-error-event')
 const storage = require('../storage')
 const { parseRetentionFile } = require('./parse-retention-file')
 const { unzipAndUpload } = require('./unzip-and-upload')
@@ -23,6 +24,7 @@ const processDataRetentionFile = async (filename) => {
     }
   } catch (err) {
     console.error(`Error thrown processing ${filename}`)
+    await sendFileErrorEvent(filename, err)
     await storage.deleteFile(filename)
     throw err
   }
