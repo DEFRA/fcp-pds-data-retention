@@ -4,13 +4,17 @@ jest.mock('../../../app/storage', () => ({
   archiveFile: jest.fn(),
   quarantineFile: jest.fn()
 }))
-const storage = require('../../../app/storage')
-const { parseRetentionFile } = require('../../../app/processing/parse-retention-file')
-const { unzipAndUpload } = require('../../../app/processing/unzip-and-upload')
-const processDataRetentionFile = require('../../../app/processing/process-data-retention-file')
 
 jest.mock('../../../app/processing/parse-retention-file')
 jest.mock('../../../app/processing/unzip-and-upload')
+jest.mock('../../../app/messaging/send-file-error-event')
+
+const storage = require('../../../app/storage')
+const { parseRetentionFile } = require('../../../app/processing/parse-retention-file')
+const { unzipAndUpload } = require('../../../app/processing/unzip-and-upload')
+const sendFileErrorEvent = require('../../../app/messaging/send-file-error-event')
+const processDataRetentionFile = require('../../../app/processing/process-data-retention-file')
+
 jest.spyOn(console, 'log').mockImplementation()
 jest.spyOn(console, 'error').mockImplementation()
 
@@ -26,11 +30,11 @@ describe('processDataRetentionFile', () => {
     storage.quarantineFile.mockResolvedValue(undefined)
     unzipAndUpload.mockResolvedValue([])
     parseRetentionFile.mockResolvedValue(true)
+    sendFileErrorEvent.mockResolvedValue(undefined)
   })
 
   test('should download zip file as stream', async () => {
     const filename = 'retention-data.zip'
-    unzipAndUpload.mockResolvedValueOnce([])
 
     await processDataRetentionFile(filename)
 
@@ -39,7 +43,6 @@ describe('processDataRetentionFile', () => {
 
   test('should unzip and upload downloaded stream', async () => {
     const filename = 'retention-data.zip'
-    storage.downloadFileAsStream.mockResolvedValueOnce(mockStream)
 
     await processDataRetentionFile(filename)
 
@@ -48,7 +51,6 @@ describe('processDataRetentionFile', () => {
 
   test('should delete original zip file after unzip', async () => {
     const filename = 'retention-data.zip'
-    unzipAndUpload.mockResolvedValueOnce([])
 
     await processDataRetentionFile(filename)
 
@@ -59,7 +61,6 @@ describe('processDataRetentionFile', () => {
     const filename = 'retention-data.zip'
     const uploadedFiles = ['file1.csv', 'file2.csv']
     unzipAndUpload.mockResolvedValueOnce(uploadedFiles)
-    storage.downloadFileAsStream.mockResolvedValue(mockStream)
 
     await processDataRetentionFile(filename)
 
@@ -117,7 +118,6 @@ describe('processDataRetentionFile', () => {
 
   test('should log processing start', async () => {
     const filename = 'retention-data.zip'
-    unzipAndUpload.mockResolvedValueOnce([])
 
     await processDataRetentionFile(filename)
 
@@ -126,7 +126,6 @@ describe('processDataRetentionFile', () => {
 
   test('should log completion after deletion', async () => {
     const filename = 'retention-data.zip'
-    unzipAndUpload.mockResolvedValueOnce([])
 
     await processDataRetentionFile(filename)
 
@@ -163,11 +162,11 @@ describe('processDataRetentionFile', () => {
     const filename = 'retention-data.zip'
     const error = new Error('Download failed')
     storage.downloadFileAsStream.mockRejectedValueOnce(error)
-    storage.deleteFile.mockResolvedValue(undefined)
 
     await expect(processDataRetentionFile(filename)).rejects.toThrow('Download failed')
 
     expect(console.error).toHaveBeenCalledWith(`Error thrown processing ${filename}`)
+    expect(sendFileErrorEvent).toHaveBeenCalledWith(filename, error)
     expect(storage.deleteFile).toHaveBeenCalledWith(filename)
   })
 
@@ -175,10 +174,10 @@ describe('processDataRetentionFile', () => {
     const filename = 'retention-data.zip'
     const error = new Error('Unzip failed')
     unzipAndUpload.mockRejectedValueOnce(error)
-    storage.deleteFile.mockResolvedValue(undefined)
 
     await expect(processDataRetentionFile(filename)).rejects.toThrow('Unzip failed')
 
+    expect(sendFileErrorEvent).toHaveBeenCalledWith(filename, error)
     expect(storage.deleteFile).toHaveBeenCalledWith(filename)
   })
 
@@ -186,11 +185,11 @@ describe('processDataRetentionFile', () => {
     const filename = 'retention-data.zip'
     const error = new Error('Unzip error')
     unzipAndUpload.mockRejectedValueOnce(error)
-    storage.deleteFile.mockResolvedValue(undefined)
 
     await expect(processDataRetentionFile(filename)).rejects.toThrow('Unzip error')
 
     expect(console.error).toHaveBeenCalledWith(`Error thrown processing ${filename}`)
+    expect(sendFileErrorEvent).toHaveBeenCalledWith(filename, error)
     expect(storage.deleteFile).toHaveBeenCalledWith(filename)
   })
 
@@ -198,12 +197,13 @@ describe('processDataRetentionFile', () => {
     const filename = 'retention-data.zip'
     const uploadedFile = 'retention-data.csv'
     unzipAndUpload.mockResolvedValueOnce([uploadedFile])
-    parseRetentionFile.mockRejectedValueOnce(new Error('Parse error'))
-    storage.deleteFile.mockResolvedValue(undefined)
+    const error = new Error('Parse error')
+    parseRetentionFile.mockRejectedValueOnce(error)
 
     await expect(processDataRetentionFile(filename)).rejects.toThrow('Parse error')
 
     expect(console.error).toHaveBeenCalledWith(`Error thrown processing ${filename}`)
+    expect(sendFileErrorEvent).toHaveBeenCalledWith(filename, error)
     expect(storage.deleteFile).toHaveBeenCalledWith(filename)
   })
 
@@ -212,12 +212,13 @@ describe('processDataRetentionFile', () => {
     const uploadedFile = 'retention-data.csv'
     unzipAndUpload.mockResolvedValueOnce([uploadedFile])
     parseRetentionFile.mockResolvedValueOnce(true)
-    storage.archiveFile.mockRejectedValueOnce(new Error('Archive error'))
-    storage.deleteFile.mockResolvedValue(undefined)
+    const error = new Error('Archive error')
+    storage.archiveFile.mockRejectedValueOnce(error)
 
     await expect(processDataRetentionFile(filename)).rejects.toThrow('Archive error')
 
     expect(console.error).toHaveBeenCalledWith(`Error thrown processing ${filename}`)
+    expect(sendFileErrorEvent).toHaveBeenCalledWith(filename, error)
     expect(storage.deleteFile).toHaveBeenCalledWith(filename)
   })
 
@@ -226,12 +227,13 @@ describe('processDataRetentionFile', () => {
     const uploadedFile = 'retention-data.csv'
     unzipAndUpload.mockResolvedValueOnce([uploadedFile])
     parseRetentionFile.mockResolvedValueOnce(false)
-    storage.quarantineFile.mockRejectedValueOnce(new Error('Quarantine error'))
-    storage.deleteFile.mockResolvedValue(undefined)
+    const error = new Error('Quarantine error')
+    storage.quarantineFile.mockRejectedValueOnce(error)
 
     await expect(processDataRetentionFile(filename)).rejects.toThrow('Quarantine error')
 
     expect(console.error).toHaveBeenCalledWith(`Error thrown processing ${filename}`)
+    expect(sendFileErrorEvent).toHaveBeenCalledWith(filename, error)
     expect(storage.deleteFile).toHaveBeenCalledWith(filename)
   })
 
@@ -254,5 +256,6 @@ describe('processDataRetentionFile', () => {
     await expect(processDataRetentionFile(filename)).resolves.toBeUndefined()
 
     expect(console.error).not.toHaveBeenCalled()
+    expect(sendFileErrorEvent).not.toHaveBeenCalled()
   })
 })
