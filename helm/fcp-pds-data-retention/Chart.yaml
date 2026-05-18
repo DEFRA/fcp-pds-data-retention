@@ -1,0 +1,9 @@
+apiVersion: v2
+description: Payment & Document Services shared data retention processing capabilities
+name: fcp-pds-data-retention
+# this version is automatically updated in the build pipeline
+version: 1.0.0
+dependencies:
+- name: ffc-helm-library
+  version: 5.1.4
+  repository: https://raw.githubusercontent.com/defra/ffc-helm-repository/master/

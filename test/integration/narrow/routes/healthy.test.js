@@ -1,24 +1,22 @@
-import { createServer } from '../../../../app/server.js'
+const { start } = require('../../../../app/server')
 
 describe('healthy test', () => {
   let server
 
   beforeEach(async () => {
-    server = await createServer()
-    await server.initialize()
-  })
-
-  test('GET /healthy route returns 200', async () => {
-    const options = {
-      method: 'GET',
-      url: '/healthy'
-    }
-
-    const response = await server.inject(options)
-    expect(response.statusCode).toBe(200)
+    server = await start()
   })
 
   afterEach(async () => {
     await server.stop()
+  })
+
+  test('GET /healthy route returns 200', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: '/healthy'
+    })
+
+    expect(response.statusCode).toBe(200)
   })
 })

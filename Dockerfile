@@ -1,6 +1,6 @@
 ARG PARENT_VERSION=2.5.0-node22.11.0
-ARG PORT=3000
 ARG PORT_DEBUG=9229
+ARG PORT=3076
 
 # Development
 FROM defradigital/node-development:${PARENT_VERSION} AS development
@@ -13,7 +13,8 @@ ENV PORT=${PORT}
 EXPOSE ${PORT} ${PORT_DEBUG}
 
 COPY --chown=node:node package*.json ./
-RUN npm install
+RUN chmod a-w package.json
+RUN npm install --ignore-scripts
 COPY --chown=node:node . .
 CMD [ "npm", "run", "start:watch" ]
 
@@ -22,11 +23,7 @@ FROM defradigital/node:${PARENT_VERSION} AS production
 ARG PARENT_VERSION
 LABEL uk.gov.defra.ffc.parent-image=defradigital/node:${PARENT_VERSION}
 
-ARG PORT
-ENV PORT=${PORT}
-EXPOSE ${PORT}
-
 COPY --from=development /home/node/app/ ./app/
 COPY --from=development /home/node/package*.json ./
-RUN npm ci
+RUN HUSKY=0 npm ci --ignore-scripts
 CMD [ "node", "app" ]

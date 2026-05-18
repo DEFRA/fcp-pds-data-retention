@@ -1,0 +1,10 @@
+---
+environment: production
+environmentCode: snd
+container:
+  azureStorageConnectionString: dummy
+  azureStorageAccountName: snd2ffcdocst2001
+  azureStorageUseConnectionString: false
+  azureStorageCreateContainers: false
+  messageQueueHost: SNDFFCINFSB2001.servicebus.windows.net
+  retentionTopicAddress: queue:fcp-pds-data-retention

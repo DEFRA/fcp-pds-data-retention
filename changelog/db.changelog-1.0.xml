@@ -1,0 +1,86 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.9.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
+  <changeSet author="Sam Plackett" id="1">
+    <tagDatabase tag="v0.0.0" />
+  </changeSet>
+  <changeSet author="Sam Plackett" id="2">
+    <tagDatabase tag="v1.0.0" />
+  </changeSet>
+  <changeSet author="Sam Plackett" id="3">
+    <createTable tableName="retentionData">
+      <column autoIncrement="true" name="retentionDataId" type="INTEGER">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="retentionDataId_pkey" />
+      </column>
+      <column name="frn" type="BIGINT" />
+      <column name="schemeId" type="INTEGER" />
+      <column name="agreementNumber" type="VARCHAR(20)" />
+      <column name="endDate" type="TIMESTAMP" />
+    </createTable>
+  </changeSet>
+    <changeSet author="Sam Plackett" id="4">
+    <createTable tableName="schemes">
+      <column autoIncrement="true" name="schemeId" type="INTEGER">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="schemeId_pkey" />
+      </column>
+      <column name="name" type="VARCHAR(30)" />
+    </createTable>
+    <insert tableName="schemes">
+      <column name="schemeId" value="1" />
+      <column name="name" value="SFI" />
+    </insert>
+    <insert tableName="schemes">
+      <column name="schemeId" value="2" />
+      <column name="name" value="SFI Pilot" />
+    </insert>
+    <insert tableName="schemes">
+      <column name="schemeId" value="3" />
+      <column name="name" value="Lump Sums" />
+    </insert>
+    <insert tableName="schemes">
+      <column name="schemeId" value="4" />
+      <column name="name" value="Vet Visits" />
+    </insert>
+    <insert tableName="schemes">
+      <column name="schemeId" value="5" />
+      <column name="name" value="CS" />
+    </insert>
+    <insert tableName="schemes">
+      <column name="schemeId" value="6" />
+      <column name="name" value="BPS" />
+    </insert>
+    <insert tableName="schemes">
+      <column name="schemeId" value="9" />
+      <column name="name" value="ES" />
+    </insert>
+    <insert tableName="schemes">
+      <column name="schemeId" value="12" />
+      <column name="name" value="SFI23" />
+    </insert>
+    <insert tableName="schemes">
+      <column name="schemeId" value="13" />
+      <column name="name" value="Delinked Payments" />
+    </insert>
+    <insert tableName="schemes">
+      <column name="schemeId" value="14" />
+      <column name="name" value="SFI Expanded Offer" />
+    </insert>
+    <insert tableName="schemes">
+      <column name="schemeId" value="15" />
+      <column name="name" value="COHT (Revenue)" />
+    </insert>
+    <insert tableName="schemes">
+      <column name="schemeId" value="16" />
+      <column name="name" value="COHT (Capital)" />
+    </insert>
+  </changeSet>
+  <changeSet author="Sam Plackett" id="5">
+    <addForeignKeyConstraint baseColumnNames="schemeId" baseTableName="retentionData" constraintName="fk_retentionData_schemeId" referencedColumnNames="schemeId" referencedTableName="schemes" />
+  </changeSet>
+  <changeSet author="Sam Plackett" id="6">
+    <createIndex tableName="retentionData" indexName="uq_retentionData_frn_agreementNumber" unique="true">
+      <column name="frn"/>
+      <column name="agreementNumber"/>
+      <column name="schemeId" />
+    </createIndex>
+</changeSet>
+</databaseChangeLog>

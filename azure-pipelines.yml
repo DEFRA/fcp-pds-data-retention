@@ -1,0 +1,79 @@
+# Pipeline name convention
+name: '$(Build.SourceBranchName)$(System.PullRequest.SourceBranch)$(Rev:.r)'
+
+# Trigger configuration
+trigger:
+  - main
+  - feature/*
+  - release/*
+
+pr:
+  - main
+  - releases/*
+
+# Parameters
+parameters:
+  - name: prDeployment
+    type: boolean
+    default: true
+  - name: branchDeployment
+    type: boolean
+    default: true
+  - name: snd2Deployment
+    type: boolean
+    default: true
+  - name: snd1Deployment
+    type: boolean
+    default: true
+
+# Resources
+resources:
+  repositories:
+    - repository: templates
+      endpoint: DEFRA
+      type: github
+      name: defra/fcp-pipeline-common
+      # ref: pl-709   # Optional: build specific pipeline branch
+
+# Pipeline template
+extends:
+  template: fcp-common-pipeline.yaml@templates
+  parameters:
+    appFrameworkType: nodejs   # Optional: nodejs (default), dotnet, java
+    Type: kubernetes           # Optional: kubernetes (default), npm, functions, nuget
+    npmLegacyPeerDeps: false   # Optional: default is false
+    dockerFilePath: Dockerfile # Optional default is Dockerfile
+    failOnThreshold: moderate  # Optional: moderate (default), low, high, critical
+    prDeployment: ${{ parameters.prDeployment }}
+    branchDeployment: ${{ parameters.branchDeployment }}
+    snd1Deployment: ${{ parameters.snd1Deployment }}
+    sndDeployment: ${{ parameters.snd2Deployment }}
+    variableGroupName: fcp-pds-data-retention-env-var
+    pr_params:
+      container.pollingInterval: $(pr_pollingInterval)
+      container.publishingInterval: $(pr_publishingInterval)
+      container.processingActive: $(pr_processingActive)
+    snd1_params:
+      container.pollingInterval: $(snd1_pollingInterval)
+      container.publishingInterval: $(snd1_publishingInterval)
+      container.processingActive: $(snd1_processingActive)
+    snd2_params:
+      container.pollingInterval: $(snd2_pollingInterval)
+      container.publishingInterval: $(snd2_publishingInterval)
+      container.processingActive: $(snd2_processingActive)
+    dev_params:
+      container.pollingInterval: $(dev_pollingInterval)
+      container.publishingInterval: $(dev_publishingInterval)
+      container.processingActive: $(dev_processingActive)
+    test_params:
+      container.pollingInterval: $(test_pollingInterval)
+      container.publishingInterval: $(test_publishingInterval)
+      container.processingActive: $(test_processingActive)
+    pre_params:
+      container.pollingInterval: $(pre_pollingInterval)
+      container.publishingInterval: $(pre_publishingInterval)
+      container.processingActive: $(pre_processingActive)
+    prd_params:
+      container.pollingInterval: $(prd_pollingInterval)
+      container.publishingInterval: $(prd_publishingInterval)
+      container.processingActive: $(prd_processingActive)

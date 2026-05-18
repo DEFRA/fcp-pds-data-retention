@@ -2,21 +2,32 @@
 # to provide dependencies and expose ports for local testing
 
 services:
-  ffc-template-node:
+  fcp-pds-data-retention:
     build:
       target: development
-    image: ffc-template-node-development
-    container_name: ffc-template-node-development
+    image: fcp-pds-data-retention-development
     ports:
-      - "3000:3000"
-      - "9229:9229"
+      - "3076:3076"
+      - "9245:9229"
+    container_name: fcp-pds-data-retention-development
     volumes:
       - ./app:/home/node/app
       - ./package.json:/home/node/package.json
-    networks:
-      - ffc-template-node
+    depends_on:
+      - fcp-pds-data-retention-azurite
 
-networks:
-  ffc-template-node:
-    name: ffc-template-node
-    driver: bridge
+  fcp-pds-data-retention-azurite:
+    volumes:
+      - azurite_data:/data
+    ports:
+      - "10008:10000"
+
+  fcp-pds-data-retention-postgres:
+    ports:
+      - "5462:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  azurite_data:
+  postgres_data:

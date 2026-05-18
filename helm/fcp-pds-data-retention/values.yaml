@@ -1,0 +1,81 @@
+# Required values to support CI pipeline
+environment: production
+environmentCode:
+name: fcp-pds-data-retention
+namespace: fcp-pds
+workstream: fcp-pds
+image: fcp-pds-data-retention
+
+labels:
+  component: service
+
+appInsights:
+  connectionString:
+
+containerConfigMap:
+  name: fcp-pds-data-retention-config-map
+
+containerSecret:
+  name: fcp-pds-data-retention
+  type: Opaque
+
+deployment:
+  minReplicas: 1
+  maxReplicas: 1
+  cpuThreshold: 50
+  memoryThreshold: 70
+
+container:
+  resourceTier: M
+  port: 3076
+  processingActive: true
+  pollingInterval: 60000
+  publishingInterval: 60000
+  azureStorageConnectionString: dummy
+  azureStorageUseConnectionString: false
+  azureStorageAccountName: fcppds
+  messageQueueHost: namespace.servicebus.windows.net
+  retentionTopicAddress: fcp-pds-data-retention
+
+postgresService:
+  postgresDb: fcp_pds_data_retention
+  postgresqlHost: fcp-pds-data-retention-postgres
+  postgresPort: 5432
+  postgresSchema: public
+  postgresUser: postgres
+
+livenessProbe:
+  path: /healthz
+  port: 3076
+  initialDelaySeconds: 70
+  periodSeconds: 120
+  failureThreshold: 5
+  timeoutSeconds: 30
+
+readinessProbe:
+  path: /healthy
+  port: 3076
+  initialDelaySeconds: 60
+  periodSeconds: 120
+  failureThreshold: 5
+  timeoutSeconds: 30
+
+workloadIdentity: true
+
+azureIdentity:
+  clientID: not-a-real-clientID
+  resourceID: not-a-real-resourceID
+
+secretProviderClass:
+  azure:
+    keyvaultName: SNDFFCINFKV2001
+    objects: # reading the secret from Azure Key Vault
+      - objectName: appInsights-connectionString # secret name in Azure Key Vault
+        objectType: secret
+
+  secretObjects: # creating a Kubernetes secret from the Azure Key Vault secrets
+    - secretName: fcp-pds-data-retention
+      type: Opaque
+      data:
+        - objectName: appInsights-connectionString # secret name in Azure Key Vault
+          key: APPINSIGHTS_CONNECTIONSTRING # the secret key in the Kubernetes secret and use in the application

@@ -1,10 +1,28 @@
 resources:
-  identity: ffc-template-node
-  # postgreSql:
-  #   name: ffc-template-node
-  #   extensions:
-  #     - name: uuid-ossp
-  # queues:
-  #   - name: ffc-template-node
-  #     role: receiver
+  identity: fcp-pds-data-retention
+  postgreSql:
+    name: fcp-pds-data-retention
+  service_bus:
+    topics:
+      - name: fcp-pds-data-retention
+        defaultMessageTimeToLive: P3650D
+        duplicateDetectionHistoryTimeWindow: PT10M30S
+        requiresDuplicateDetection: true
+        roles: 
+        - name: sender
+      - name: ffc-doc-alerting
+        defaultMessageTimeToLive: P3650D
+        duplicateDetectionHistoryTimeWindow: PT10M30S
+        requiresDuplicateDetection: true
+        roles: 
+        - name: sender
+  storage_accounts:
+    - name: doc
+      containers:
+        - name: dwh
+          roles:
+            - name: blobContributor
+      roles:
+        - name: storageAccountContributor
+
 

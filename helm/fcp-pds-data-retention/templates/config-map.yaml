@@ -1,0 +1,24 @@
+{{- include "ffc-helm-library.container-config-map" (list . "fcp-pds-data-retention.config-map") -}}
+{{- define "fcp-pds-data-retention.config-map" -}}
+data:
+  NODE_ENV: {{ .Values.environment }}
+  APPINSIGHTS_CLOUDROLE: {{ .Chart.Name | quote }}
+  OTEL_SERVICE_NAME: {{ quote .Values.name }} 
+  PROCESSING_ACTIVE: {{ quote .Values.container.processingActive }}
+  POLLING_INTERVAL: {{ quote .Values.container.pollingInterval }}
+  PUBLISHING_INTERVAL: {{ quote .Values.container.publishingInterval }}
+  AZURE_STORAGE_CONNECTION_STRING: {{ quote .Values.container.azureStorageConnectionString }}
+  AZURE_STORAGE_USE_CONNECTION_STRING: {{ quote .Values.container.azureStorageUseConnectionString }}
+  AZURE_STORAGE_ACCOUNT_NAME: {{ quote .Values.container.azureStorageAccountName }}
+  MESSAGE_QUEUE_HOST: {{ quote .Values.container.messageQueueHost }}
+  {{- if (.Values.environmentCode) }}
+  RETENTION_TOPIC_ADDRESS: {{ .Values.container.retentionTopicAddress }}-{{ .Values.environmentCode }}
+  {{ else }}
+  RETENTION_TOPIC_ADDRESS: {{ quote .Values.container.retentionTopicAddress }}
+  {{- end }}
+  POSTGRES_DB: {{ quote .Values.postgresService.postgresDb }}
+  POSTGRES_HOST: {{ quote .Values.postgresService.postgresqlHost }}
+  POSTGRES_PORT: {{ quote .Values.postgresService.postgresPort }}
+  POSTGRES_SCHEMA_NAME: {{ quote .Values.postgresService.postgresSchema }}
+  POSTGRES_USERNAME: {{ .Values.postgresService.postgresUser | quote }}
+{{- end -}}

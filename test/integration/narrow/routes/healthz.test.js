@@ -1,11 +1,10 @@
-import { createServer } from '../../../../app/server.js'
+const { start } = require('../../../../app/server')
 
 describe('healthz test', () => {
   let server
 
   beforeEach(async () => {
-    server = await createServer()
-    await server.initialize()
+    server = await start()
   })
 
   test('GET /healthz route returns 200', async () => {

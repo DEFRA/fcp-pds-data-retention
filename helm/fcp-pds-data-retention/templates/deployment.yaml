@@ -1,0 +1,8 @@
+{{- include "ffc-helm-library.deployment" (list . "fcp-pds-data-retention.deployment") -}}
+{{- define "fcp-pds-data-retention.deployment" -}}
+spec:
+  template:
+    spec:
+      containers:
+      - {{ include "ffc-helm-library.container" (list . "fcp-pds-data-retention.container") }}
+{{- end -}}
