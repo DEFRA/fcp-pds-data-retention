@@ -45,7 +45,7 @@ const getRetentionDataFromFile = (fileStream, onRow) => {
           frn: row['FRN'],
           scheme: row['SCHEME'],
           agreementNumber: row['APP_REF'],
-          endDate: parseDateString(row['APP_END_DATE']),
+          endDate: parseDateString(row['APP_END_DATE'])
         })
       } catch (err) {
         reject(err)
