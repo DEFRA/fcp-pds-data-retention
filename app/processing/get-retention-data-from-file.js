@@ -21,22 +21,27 @@ const parseDateString = (dateStr) => {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-const getRetentionDataFromFile = (fileStream) => {
-  const results = []
+const getRetentionDataFromFile = (fileStream, onRow) => {
   return new Promise((resolve, reject) => {
     fileStream
       .pipe(csv())
-      .on('data', row => {
-        results.push({
-          frn: row['FRN'],
-          scheme: row['SCHEME'],
-          agreementNumber: row['APP_REF'],
-          endDate: parseDateString(row['APP_END_DATE'])
-        })
+      .on('data', async (row) => {
+        // Pause stream to apply backpressure until onRow finishes
+        fileStream.pause()
+        try {
+          await onRow({
+            frn: row['FRN'],
+            scheme: row['SCHEME'],
+            agreementNumber: row['APP_REF'],
+            endDate: parseDateString(row['APP_END_DATE'])
+          })
+          fileStream.resume()
+        } catch (err) {
+          reject(err)
+        }
       })
-      .on('end', () => resolve(results))
+      .on('end', () => resolve())
       .on('error', reject)
   })
 }
-
 module.exports = getRetentionDataFromFile
