@@ -118,8 +118,8 @@ describe('getRetentionDataFromFile', () => {
 
     await dataHandler({ FRN: '111', SCHEME: 'SFP', APP_REF: 'REF123', APP_END_DATE: null })
     await dataHandler({ FRN: '222', SCHEME: 'SFP', APP_REF: 'REF124', APP_END_DATE: '' })
-    await dataHandler({ FRN: '333', SCHEME: 'SFP', APP_REF: 'REF125', APP_END_DATE: '01/15/2024' })
-    await dataHandler({ FRN: '444', SCHEME: 'SFP', APP_REF: 'REF126', APP_END_DATE: '15/01/2024 12:00:00' })
+    await dataHandler({ FRN: '333', SCHEME: 'SFP', APP_REF: 'REF125', APP_END_DATE: '01/15/2024' }) // missing time
+    await dataHandler({ FRN: '444', SCHEME: 'SFP', APP_REF: 'REF126', APP_END_DATE: '15/01/2024 12:00:00' }) // wrong format (day/month instead of month/day)
     await dataHandler({ FRN: '555', SCHEME: 'SFP', APP_REF: 'REF127', APP_END_DATE: 'not a date' })
 
     endHandler()
@@ -189,5 +189,50 @@ describe('getRetentionDataFromFile', () => {
 
     expect(onRow).toHaveBeenCalledTimes(1)
     expect(callOrder).toEqual(['onRow'])
+  })
+
+  test('should reject promise if onRow throws an error', async () => {
+    let dataHandler
+    let endHandler
+
+    mockCsvParser.on.mockImplementation((event, handler) => {
+      if (event === 'data') dataHandler = handler
+      if (event === 'end') endHandler = handler
+      return mockCsvParser
+    })
+
+    const errorOnRow = new Error('Error in onRow')
+
+    const onRow = jest.fn(async () => {
+      throw errorOnRow
+    })
+
+    const promise = getRetentionDataFromFile(mockFileStream, onRow)
+
+    await dataHandler({ FRN: '999', SCHEME: 'ERR', APP_REF: 'ERR001', APP_END_DATE: '01/01/2021 00:00:00' })
+
+    endHandler()
+
+    await expect(promise).rejects.toThrow('Error in onRow')
+  })
+
+  test('should resolve immediately if no data rows are received', async () => {
+    let endHandler
+
+    mockCsvParser.on.mockImplementation((event, handler) => {
+      if (event === 'end') {
+        endHandler = handler
+      }
+      return mockCsvParser
+    })
+
+    const onRow = jest.fn()
+
+    const promise = getRetentionDataFromFile(mockFileStream, onRow)
+
+    endHandler()
+
+    await expect(promise).resolves.toBeUndefined()
+    expect(onRow).not.toHaveBeenCalled()
   })
 })
