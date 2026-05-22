@@ -44,7 +44,7 @@
     "nodemon": "3.0.1"
   },
   "overrides": {
-    "protobufjs": "8.0.2"
+    "protobufjs": "8.2.0"
   },
   "nodemonConfig": {
     "ignore": [
