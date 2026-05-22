@@ -39,7 +39,7 @@ describe('parseRetentionFile', () => {
 
     expect(result).toBe(true)
     expect(getRetentionDataFromFile).toHaveBeenCalledWith(mockFileStream, expect.any(Function))
-    expect(mapRetentionData).toHaveBeenCalled()
+    expect(mapRetentionData).toHaveBeenCalledTimes(3)
     expect(handleParsedRetentionData).toHaveBeenCalled()
   })
 
@@ -86,5 +86,87 @@ describe('parseRetentionFile', () => {
 
     expect(sendFileErrorEvent).toHaveBeenCalledWith(filename, error)
     expect(result).toBe(false)
+  })
+
+  test('should batch and call handleParsedRetentionData when BATCH_SIZE reached', async () => {
+    const BATCH_SIZE = 1000
+    const totalRows = BATCH_SIZE + 10
+    let callCount = 0
+
+    getRetentionDataFromFile.mockImplementation(async (fileStream, onRow) => {
+      for (let i = 0; i < totalRows; i++) {
+        await onRow({ frn: `${i}`, scheme: 'A', agreementNumber: `R${i}`, endDate: new Date() })
+      }
+    })
+
+    mapRetentionData.mockImplementation(() => {
+      return {
+        successful: [{ frn: `x${callCount}`, schemeId: 1 }],
+        unsuccessful: []
+      }
+    })
+
+    handleParsedRetentionData.mockImplementation(async ({ successful, unsuccessful }) => {
+      callCount++
+      return true
+    })
+
+    const result = await parseRetentionFile(filename, mockFileStream)
+
+    expect(result).toBe(true)
+    expect(handleParsedRetentionData).toHaveBeenCalledTimes(2)
+    expect(sendFileErrorEvent).not.toHaveBeenCalled()
+  })
+
+  test('should call handleParsedRetentionData once if no rows processed (empty file)', async () => {
+    getRetentionDataFromFile.mockImplementation(async (fileStream, onRow) => { })
+
+    const result = await parseRetentionFile(filename, mockFileStream)
+
+    expect(result).toBe(true)
+    expect(handleParsedRetentionData).not.toHaveBeenCalled()
+    expect(sendFileErrorEvent).not.toHaveBeenCalled()
+  })
+
+  test('should handle rows with only unsuccessful mapped data', async () => {
+    getRetentionDataFromFile.mockImplementation(async (fileStream, onRow) => {
+      await onRow({ frn: '1', scheme: 'A', agreementNumber: 'R1', endDate: new Date() })
+    })
+
+    mapRetentionData.mockReturnValue({
+      successful: [],
+      unsuccessful: [{ frn: '1' }]
+    })
+
+    handleParsedRetentionData.mockResolvedValue(true)
+
+    const result = await parseRetentionFile(filename, mockFileStream)
+
+    expect(result).toBe(true)
+    expect(handleParsedRetentionData).toHaveBeenCalledWith({
+      successful: [],
+      unsuccessful: [{ frn: '1' }]
+    })
+  })
+
+  test('should handle rows with only successful mapped data', async () => {
+    getRetentionDataFromFile.mockImplementation(async (fileStream, onRow) => {
+      await onRow({ frn: '1', scheme: 'A', agreementNumber: 'R1', endDate: new Date() })
+    })
+
+    mapRetentionData.mockReturnValue({
+      successful: [{ frn: '1', schemeId: 1 }],
+      unsuccessful: []
+    })
+
+    handleParsedRetentionData.mockResolvedValue(true)
+
+    const result = await parseRetentionFile(filename, mockFileStream)
+
+    expect(result).toBe(true)
+    expect(handleParsedRetentionData).toHaveBeenCalledWith({
+      successful: [{ frn: '1', schemeId: 1 }],
+      unsuccessful: []
+    })
   })
 })
