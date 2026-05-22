@@ -30,7 +30,6 @@ container:
   requestCpu: 900m
   limitMemory: 1024Mi
   limitCpu: 1700m
-  resourceTier: M
   port: 3076
   processingActive: true
   pollingInterval: 60000
