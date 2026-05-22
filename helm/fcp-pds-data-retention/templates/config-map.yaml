@@ -13,8 +13,10 @@ data:
   MESSAGE_QUEUE_HOST: {{ quote .Values.container.messageQueueHost }}
   {{- if (.Values.environmentCode) }}
   RETENTION_TOPIC_ADDRESS: {{ .Values.container.retentionTopicAddress }}-{{ .Values.environmentCode }}
+  ALERT_TOPIC_ADDRESS: {{ .Values.container.alertTopicAddress }}-{{ .Values.environmentCode }}
   {{ else }}
   RETENTION_TOPIC_ADDRESS: {{ quote .Values.container.retentionTopicAddress }}
+  ALERT_TOPIC_ADDRESS: {{ .Values.container.alertTopicAddress }}
   {{- end }}
   POSTGRES_DB: {{ quote .Values.postgresService.postgresDb }}
   POSTGRES_HOST: {{ quote .Values.postgresService.postgresqlHost }}
