@@ -6,10 +6,14 @@ const parseDateString = (dateStr) => {
   }
 
   const [datePart, timePart] = dateStr.split(' ')
-  if (!datePart || !timePart) return null
+  if (!datePart || !timePart) {
+    return null
+  }
 
   const [month, day, year] = datePart.split('/')
-  if (!month || !day || !year) return null
+  if (!month || !day || !year) {
+    return null
+  }
 
   const isoString = `${year.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`
 
