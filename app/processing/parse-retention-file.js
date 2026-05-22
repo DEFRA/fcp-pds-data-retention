@@ -14,7 +14,7 @@ const parseRetentionFile = async (filename, fileStream) => {
       const mapped = mapRetentionData([row])
       successfulBatch.push(...mapped.successful)
       unsuccessfulBatch.push(...mapped.unsuccessful)
-      console.log(`Parsed row with frn ${row.frn}, scheme ${row.schemeId}`)
+      console.log(`Parsed row with frn ${mapped.frn}, scheme ${mapped.schemeId}`)
       if (successfulBatch.length + unsuccessfulBatch.length >= BATCH_SIZE) {
         await handleParsedRetentionData({
           successful: successfulBatch.splice(0),

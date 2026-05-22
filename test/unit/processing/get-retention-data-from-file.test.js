@@ -18,15 +18,17 @@ describe('getRetentionDataFromFile', () => {
 
     mockCsvParser = {
       on: jest.fn(),
-      pipe: jest.fn()
+      pipe: jest.fn(),
+      pause: pauseMock,
+      resume: resumeMock,
     }
 
     mockPipe = jest.fn().mockReturnValue(mockCsvParser)
 
     mockFileStream = {
       pipe: mockPipe,
-      pause: pauseMock,
-      resume: resumeMock
+      pause: jest.fn(),
+      resume: jest.fn()
     }
 
     csv.mockReturnValue(mockCsvParser)
@@ -136,7 +138,7 @@ describe('getRetentionDataFromFile', () => {
     await expect(promise).rejects.toThrow('CSV parsing failed')
   })
 
-  test('should pause and resume fileStream around onRow call', async () => {
+  test('should pause and resume parser around onRow call', async () => {
     let dataHandler
     let endHandler
 
@@ -159,16 +161,22 @@ describe('getRetentionDataFromFile', () => {
 
     const promise = getRetentionDataFromFile(mockFileStream, onRow)
 
-    expect(mockFileStream.pause).not.toHaveBeenCalled()
-    expect(mockFileStream.resume).not.toHaveBeenCalled()
+    expect(pauseMock).not.toHaveBeenCalled()
+    expect(resumeMock).not.toHaveBeenCalled()
 
     const p1 = dataHandler({ FRN: '1', SCHEME: 'A', APP_REF: 'R1', APP_END_DATE: '01/01/2021 00:00:00' })
 
-    expect(mockFileStream.pause).toHaveBeenCalledTimes(1)
+    expect(pauseMock).toHaveBeenCalledTimes(1)
 
     await p1
 
-    expect(mockFileStream.resume).toHaveBeenCalledTimes(1)
+    await new Promise(resolve => setImmediate(resolve))
+    await new Promise(resolve => setImmediate(resolve))
+    await new Promise(resolve => setImmediate(resolve))
+    await new Promise(resolve => setImmediate(resolve))
+    await new Promise(resolve => setImmediate(resolve))
+
+    expect(resumeMock).toHaveBeenCalledTimes(1)
 
     endHandler()
     await promise
