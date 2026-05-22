@@ -3,6 +3,20 @@ const getRetentionDataFromFile = require('../../../app/processing/get-retention-
 
 jest.mock('csv-parser')
 
+const waitForMockCall = async (mockFn, timeoutMs = 1000) => {
+  const pollInterval = 10
+  const maxTries = Math.ceil(timeoutMs / pollInterval)
+  let tries = 0
+  while (tries < maxTries) {
+    if (mockFn.mock.calls.length > 0) {
+      return
+    }
+    await new Promise(resolve => setTimeout(resolve, pollInterval))
+    tries++
+  }
+  throw new Error('Timeout waiting for mock to be called')
+}
+
 describe('getRetentionDataFromFile', () => {
   let mockFileStream
   let mockCsvParser
@@ -143,12 +157,8 @@ describe('getRetentionDataFromFile', () => {
     let endHandler
 
     mockCsvParser.on.mockImplementation((event, handler) => {
-      if (event === 'data') {
-        dataHandler = handler
-      }
-      if (event === 'end') {
-        endHandler = handler
-      }
+      if (event === 'data') dataHandler = handler
+      if (event === 'end') endHandler = handler
       return mockCsvParser
     })
 
@@ -170,37 +180,7 @@ describe('getRetentionDataFromFile', () => {
 
     await p1
 
-    // required to add artificial bumper to ensure resume is called
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
-    await new Promise(resolve => setImmediate(resolve))
+    await waitForMockCall(resumeMock)
 
     expect(resumeMock).toHaveBeenCalledTimes(1)
 
