@@ -29,8 +29,12 @@ describe('getRetentionDataFromFile', () => {
     let endHandler
 
     mockCsvParser.on.mockImplementation((event, handler) => {
-      if (event === 'data') dataHandler = handler
-      if (event === 'end') endHandler = handler
+      if (event === 'data') {
+        dataHandler = handler
+      }
+      if (event === 'end') {
+        endHandler = handler
+      }
       return mockCsvParser
     })
 
@@ -66,8 +70,12 @@ describe('getRetentionDataFromFile', () => {
     let endHandler
 
     mockCsvParser.on.mockImplementation((event, handler) => {
-      if (event === 'data') dataHandler = handler
-      if (event === 'end') endHandler = handler
+      if (event === 'data') {
+        dataHandler = handler
+      }
+      if (event === 'end') {
+        endHandler = handler
+      }
       return mockCsvParser
     })
 
@@ -94,8 +102,12 @@ describe('getRetentionDataFromFile', () => {
     let endHandler
 
     mockCsvParser.on.mockImplementation((event, handler) => {
-      if (event === 'data') dataHandler = handler
-      if (event === 'end') endHandler = handler
+      if (event === 'data') {
+        dataHandler = handler
+      }
+      if (event === 'end') {
+        endHandler = handler
+      }
       return mockCsvParser
     })
 
@@ -117,7 +129,9 @@ describe('getRetentionDataFromFile', () => {
     let endHandler
 
     mockCsvParser.on.mockImplementation((event, handler) => {
-      if (event === 'end') endHandler = handler
+      if (event === 'end') {
+        endHandler = handler
+      }
       return mockCsvParser
     })
 
@@ -133,7 +147,9 @@ describe('getRetentionDataFromFile', () => {
     let errorHandler
 
     mockCsvParser.on.mockImplementation((event, handler) => {
-      if (event === 'error') errorHandler = handler
+      if (event === 'error') {
+        errorHandler = handler
+      }
       return mockCsvParser
     })
 
@@ -148,7 +164,9 @@ describe('getRetentionDataFromFile', () => {
     let endHandler
 
     mockCsvParser.on.mockImplementation((event, handler) => {
-      if (event === 'end') endHandler = handler
+      if (event === 'end') {
+        endHandler = handler
+      }
       return mockCsvParser
     })
 
@@ -164,7 +182,9 @@ describe('getRetentionDataFromFile', () => {
     let endHandler
 
     mockCsvParser.on.mockImplementation((event, handler) => {
-      if (event === 'end') endHandler = handler
+      if (event === 'end') {
+        endHandler = handler
+      }
       return mockCsvParser
     })
 
@@ -181,8 +201,12 @@ describe('getRetentionDataFromFile', () => {
     let endHandler
 
     mockCsvParser.on.mockImplementation((event, handler) => {
-      if (event === 'data') dataHandler = handler
-      if (event === 'end') endHandler = handler
+      if (event === 'data') {
+        dataHandler = handler
+      }
+      if (event === 'end') {
+        endHandler = handler
+      }
       return mockCsvParser
     })
 
