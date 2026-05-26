@@ -1,6 +1,6 @@
 {
   "name": "fcp-pds-data-retention",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Payment & Document Services shared data retention processing capabilities",
   "homepage": "https://github.com/DEFRA/fcp-pds-data-retention",
   "main": "app/index.js",
@@ -17,7 +17,8 @@
   },
   "author": "Defra",
   "contributors": [
-    "Sam Plackett samuel.plackett@atos.net"
+    "Sam Plackett samuel.plackett@atos.net",
+    "Leigh Godson leigh.godson@atos.ai"
   ],
   "license": "OGL-UK-3.0",
   "dependencies": {
@@ -26,7 +27,7 @@
     "@azure/storage-blob": "12.31.0",
     "@hapi/hapi": "21.3.2",
     "csv-parser": "3.2.0",
-    "ffc-database": "1.0.24",
+    "ffc-database": "1.0.26",
     "ffc-messaging": "2.10.6",
     "ffc-pay-event-publisher": "1.2.5",
     "hapi-pino": "12.1.0",
@@ -44,7 +45,8 @@
     "nodemon": "3.0.1"
   },
   "overrides": {
-    "protobufjs": "8.2.0"
+    "protobufjs": "8.2.0",
+    "uuid": "11.1.1"
   },
   "nodemonConfig": {
     "ignore": [
