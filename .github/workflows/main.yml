@@ -1,0 +1,17 @@
+name: Version Bump
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  version-bump:
+    uses: DEFRA/ffc-shared-actions/.github/workflows/version-bump.yml@main
+    with:
+      node-version: '24'
+    secrets: inherit

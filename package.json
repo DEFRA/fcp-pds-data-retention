@@ -18,7 +18,8 @@
   "author": "Defra",
   "contributors": [
     "Sam Plackett samuel.plackett@atos.net",
-    "Leigh Godson leigh.godson@atos.ai"
+    "Leigh Godson leigh.godson@atos.ai",
+    "Alistair Wishart alistair.wishart@atos.ai"
   ],
   "license": "OGL-UK-3.0",
   "dependencies": {
@@ -31,7 +32,7 @@
     "ffc-messaging": "2.10.6",
     "ffc-pay-event-publisher": "1.2.5",
     "hapi-pino": "12.1.0",
-    "joi": "17.13.3",
+    "joi": "18.2.1",
     "log-timestamp": "0.3.0",
     "unzipper": "0.12.3"
   },
@@ -45,8 +46,11 @@
     "nodemon": "3.0.1"
   },
   "overrides": {
-    "protobufjs": "8.2.0",
-    "uuid": "11.1.1"
+    "protobufjs": "8.6.3",
+    "uuid": "11.1.1",
+    "joi": "18.2.1",
+    "js-yaml": "4.2.0",
+    "@opentelemetry/core": "2.8.0"
   },
   "nodemonConfig": {
     "ignore": [
