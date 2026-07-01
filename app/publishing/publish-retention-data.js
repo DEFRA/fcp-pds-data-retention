@@ -6,17 +6,29 @@ const { SFI_PILOT, CS } = require('../constants/schemes')
 
 const publishRetentionData = async () => {
   const pendingRetentionData = await getPendingRetentionData()
-  for (const pending of pendingRetentionData) {
+
+  if (!pendingRetentionData || pendingRetentionData.length === 0) {
+    console.log('No pending retention data')
+    return
+  }
+
+  const messages = pendingRetentionData.map(pending => {
     console.log(`Data passed 7 year retention for frn: ${pending.frn}, agreement number: ${pending.agreementNumber}`)
     pending.simplifiedAgreementNumber = pending.agreementNumber
     pending.agreementNumber = getMappedAgreementNumber(pending.schemeId, pending.agreementNumber)
     pending.usesContractNumber = [SFI_PILOT, CS].includes(pending.schemeId)
-    await sendPublishMessage(pending)
-    await db.retentionData.destroy({
-      where: { retentionDataId: pending.retentionDataId }
-    })
-    console.log('Notification supplied to downstream systems')
-  }
+    return pending
+  })
+
+  await Promise.all(messages.map(m => sendPublishMessage(m)))
+
+  await db.retentionData.destroy({
+    where: {
+      retentionDataId: messages.map(m => m.retentionDataId)
+    }
+  })
+
+  console.log('Notifications supplied to downstream systems')
 }
 
 module.exports = {

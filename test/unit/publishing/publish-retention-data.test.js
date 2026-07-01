@@ -38,7 +38,7 @@ describe('publishRetentionData', () => {
     await publishRetentionData()
 
     expect(sendPublishMessage).toHaveBeenCalledTimes(2)
-    expect(db.retentionData.destroy).toHaveBeenCalledTimes(2)
+    expect(db.retentionData.destroy).toHaveBeenCalledTimes(1)
   })
 
   test('should send publish message with correct pending data', async () => {
@@ -64,7 +64,7 @@ describe('publishRetentionData', () => {
     await publishRetentionData()
 
     expect(db.retentionData.destroy).toHaveBeenCalledWith({
-      where: { retentionDataId: 123 }
+      where: { retentionDataId: [123] }
     })
   })
 
@@ -92,7 +92,7 @@ describe('publishRetentionData', () => {
 
     await publishRetentionData()
 
-    expect(consoleSpy).toHaveBeenCalledWith('Notification supplied to downstream systems')
+    expect(consoleSpy).toHaveBeenCalledWith('Notifications supplied to downstream systems')
     consoleSpy.mockRestore()
   })
 
@@ -154,9 +154,8 @@ describe('publishRetentionData', () => {
 
     expect(callOrder).toEqual([
       'message-1',
-      'destroy-1',
       'message-2',
-      'destroy-2'
+      'destroy-1,2'
     ])
   })
 
