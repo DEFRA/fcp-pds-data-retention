@@ -7,6 +7,11 @@ const { SFI_PILOT, CS } = require('../constants/schemes')
 const publishRetentionData = async () => {
   const pendingRetentionData = await getPendingRetentionData()
 
+  if (!pendingRetentionData || pendingRetentionData.length === 0) {
+    console.log('No pending retention data')
+    return
+  }
+
   const messages = pendingRetentionData.map(pending => {
     console.log(`Data passed 7 year retention for frn: ${pending.frn}, agreement number: ${pending.agreementNumber}`)
     pending.simplifiedAgreementNumber = pending.agreementNumber
@@ -15,10 +20,8 @@ const publishRetentionData = async () => {
     return pending
   })
 
-  // Send all messages in parallel
   await Promise.all(messages.map(m => sendPublishMessage(m)))
 
-  // Delete all rows in bulk
   await db.retentionData.destroy({
     where: {
       retentionDataId: messages.map(m => m.retentionDataId)
