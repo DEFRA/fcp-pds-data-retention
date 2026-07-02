@@ -8,7 +8,6 @@ const publishRetentionData = async () => {
   const pendingRetentionData = await getPendingRetentionData()
 
   if (!pendingRetentionData || pendingRetentionData.length === 0) {
-    console.log('No pending retention data')
     return
   }
 
