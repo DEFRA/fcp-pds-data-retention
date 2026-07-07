@@ -1,6 +1,6 @@
 {
   "name": "fcp-pds-data-retention",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Payment & Document Services shared data retention processing capabilities",
   "homepage": "https://github.com/DEFRA/fcp-pds-data-retention",
   "main": "app/index.js",
