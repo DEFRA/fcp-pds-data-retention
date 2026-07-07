@@ -4,7 +4,9 @@ const saveValidRetentionData = async (validRetentionData) => {
   const transformedData = validRetentionData.map(retentionData => {
     return {
       ...retentionData,
-      frn: Number(retentionData.frn)
+      frn: Number(retentionData.frn),
+      addedBy: 'DWH',
+      addedTime: Date.now()
     }
   })
   return db.retentionData.bulkCreate(transformedData, {

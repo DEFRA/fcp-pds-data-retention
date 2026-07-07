@@ -4,7 +4,9 @@ const defineRetentionData = (sequelize, DataTypes) => {
     frn: DataTypes.BIGINT,
     schemeId: DataTypes.INTEGER,
     agreementNumber: DataTypes.STRING,
-    endDate: DataTypes.DATE
+    endDate: DataTypes.DATE,
+    addedBy: DataTypes.STRING,
+    addedTime: DataTypes.DATE
   },
   {
     tableName: 'retentionData',

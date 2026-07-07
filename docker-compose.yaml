@@ -32,6 +32,9 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_SCHEMA_NAME: ${POSTGRES_SCHEMA_NAME:-public}
       POSTGRES_USERNAME: ${POSTGRES_SCHEMA_USERNAME:-postgres}
+    networks:
+      - default
+      - pds
 
   fcp-pds-data-retention-postgres:
     image: postgres:11.4-alpine
@@ -39,9 +42,19 @@ services:
       POSTGRES_DB: fcp_pds_data_retention
       POSTGRES_PASSWORD: ppp
       POSTGRES_USERNAME: postgres
+    networks:
+      - default
+      - pds
 
   fcp-pds-data-retention-azurite:
     image: mcr.microsoft.com/azure-storage/azurite:3.35.0
     command: "azurite-blob --loose --blobHost 0.0.0.0 --skipApiVersionCheck"
     labels:
       com.docker.compose.pds.role: fcp-pds-data-retention-azurite
+    networks:
+      - default
+
+networks:
+  pds:
+    name: fcp-pds
+    external: true

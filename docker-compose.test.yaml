@@ -35,7 +35,7 @@ services:
 
   fcp-pds-data-retention-azurite:
     labels:
-      com.docker.compose.pay.role: test
+      com.docker.compose.pds.role: test
 
   sqledge:
     container_name: "sqledge"
@@ -67,3 +67,8 @@ services:
 
 volumes:
   postgres_data: {}
+
+networks:
+  pds:
+    name: pds
+    external: false
