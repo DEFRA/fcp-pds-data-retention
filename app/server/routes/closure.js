@@ -2,6 +2,7 @@ const joi = require('joi')
 const boom = require('@hapi/boom')
 const db = require('../../data')
 const { getSchemeIdFromSourceSystem } = require('../../helpers/get-scheme-id-from-source-system')
+const ok = { statusCode: 200, message: 'ok' }
 
 module.exports = [
   {
@@ -30,7 +31,7 @@ module.exports = [
           addedBy,
           addedTime: Date.now()
         })
-        return h.response('ok').code(200)
+        return h.response(ok.message).code(ok.statusCode)
       }
     }
   },
@@ -51,7 +52,7 @@ module.exports = [
         }
         await db.retentionData.upsert(data)
 
-        return h.response('ok').code(200)
+        return h.response(ok.message).code(ok.statusCode)
       }
     }
   }
