@@ -149,4 +149,60 @@ describe('Closure API Routes', () => {
       expect(db.retentionData.upsert).toHaveBeenCalledWith([])
     })
   })
+
+  describe('POST /closure/remove', () => {
+    beforeEach(() => {
+      db.retentionData = {
+        destroy: jest.fn().mockResolvedValue(1)
+      }
+    })
+
+    test('should successfully remove closure and return 200', async () => {
+      const payload = {
+        retentionDataId: 123
+      }
+
+      const res = await server.inject({
+        method: 'POST',
+        url: '/closure/remove',
+        payload
+      })
+
+      expect(res.statusCode).toBe(200)
+      expect(res.result).toBe('ok')
+
+      expect(db.retentionData.destroy).toHaveBeenCalledTimes(1)
+      expect(db.retentionData.destroy).toHaveBeenCalledWith({
+        where: {
+          retentionDataId: payload.retentionDataId
+        }
+      })
+    })
+
+    test('should fail validation and return 400 when retentionDataId is missing', async () => {
+      const res = await server.inject({
+        method: 'POST',
+        url: '/closure/remove',
+        payload: {}
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toMatch(/"retentionDataId" is required/)
+      expect(db.retentionData.destroy).not.toHaveBeenCalled()
+    })
+
+    test('should fail validation and return 400 when retentionDataId is not a number', async () => {
+      const res = await server.inject({
+        method: 'POST',
+        url: '/closure/remove',
+        payload: {
+          retentionDataId: 'not-a-number'
+        }
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toMatch(/"retentionDataId" must be a number/)
+      expect(db.retentionData.destroy).not.toHaveBeenCalled()
+    })
+  })
 })
