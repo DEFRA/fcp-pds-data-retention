@@ -5,6 +5,9 @@ const db = require('../../data')
 const { getSchemeIdFromSourceSystem } = require('../../helpers/get-scheme-id-from-source-system')
 
 const ok = { statusCode: 200, message: 'ok' }
+const defaultPage = 1
+const minPageSize = 1
+const defaultPageSize = 2500
 
 module.exports = [
   {
@@ -13,8 +16,8 @@ module.exports = [
     options: {
       validate: {
         query: joi.object({
-          page: joi.number().integer().min(1).default(1),
-          pageSize: joi.number().integer().min(1).default(2500),
+          page: joi.number().integer().min(defaultPage).default(defaultPage),
+          pageSize: joi.number().integer().min(minPageSize).default(defaultPageSize),
           frnAgreement: joi.string().allow('', null).optional(),
           schemeId: joi.number().integer().allow(null).optional()
         }),
@@ -143,13 +146,13 @@ module.exports = [
         payload: joi.object({
           retentionDataId: joi.number().integer().required()
         }),
-        failAction: (request, h, error) => {
+        failAction: (_request, _h, error) => {
           return boom.badRequest(error)
         }
       },
       handler: async (request, h) => {
         await db.retentionData.destroy({ where: { retentionDataId: request.payload.retentionDataId } })
-        return h.response('ok').code(200)
+        return h.response(ok.message).code(ok.statusCode)
       }
     }
   }

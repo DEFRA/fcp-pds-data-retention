@@ -1,4 +1,5 @@
 const Hapi = require('@hapi/hapi')
+const { Op } = require('sequelize')
 const routes = require('../../../../app/server/routes/closure')
 const db = require('../../../../app/data')
 const { getSchemeIdFromSourceSystem } = require('../../../../app/helpers/get-scheme-id-from-source-system')
@@ -18,6 +19,225 @@ describe('Closure API Routes', () => {
   afterAll(async () => {
     await server.stop()
     jest.resetAllMocks()
+  })
+
+  describe('GET /closure', () => {
+    beforeEach(() => {
+      db.scheme = {}
+      db.Sequelize = {
+        col: jest.fn().mockImplementation((column) => column)
+      }
+      db.retentionData = {
+        findAndCountAll: jest.fn().mockResolvedValue({
+          count: 2,
+          rows: [
+            {
+              retentionDataId: 1,
+              frn: 1234567890,
+              agreementNumber: 'AG12345',
+              schemeId: 1,
+              schemeName: 'SFI'
+            },
+            {
+              retentionDataId: 2,
+              frn: 9876543210,
+              agreementNumber: 'AG67890',
+              schemeId: 2,
+              schemeName: 'CS'
+            }
+          ]
+        })
+      }
+    })
+
+    test('should return paginated closures using default page and pageSize', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure'
+      })
+
+      expect(res.statusCode).toBe(200)
+      expect(res.result).toEqual({
+        closures: [
+          {
+            retentionDataId: 1,
+            frn: 1234567890,
+            agreementNumber: 'AG12345',
+            schemeId: 1,
+            schemeName: 'SFI'
+          },
+          {
+            retentionDataId: 2,
+            frn: 9876543210,
+            agreementNumber: 'AG67890',
+            schemeId: 2,
+            schemeName: 'CS'
+          }
+        ],
+        count: 2
+      })
+
+      expect(db.retentionData.findAndCountAll).toHaveBeenCalledTimes(1)
+      expect(db.retentionData.findAndCountAll).toHaveBeenCalledWith({
+        where: {},
+        include: [{
+          model: db.scheme,
+          as: 'scheme',
+          attributes: []
+        }],
+        attributes: {
+          include: [
+            ['scheme.name', 'schemeName']
+          ]
+        },
+        distinct: true,
+        raw: true,
+        limit: 2500,
+        offset: 0
+      })
+    })
+
+    test('should apply page and pageSize when provided', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure?page=3&pageSize=100'
+      })
+
+      expect(res.statusCode).toBe(200)
+
+      expect(db.retentionData.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          limit: 100,
+          offset: 200
+        })
+      )
+    })
+
+    test('should filter by numeric frnAgreement using agreementNumber or frn', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure?frnAgreement=1234567890'
+      })
+
+      expect(res.statusCode).toBe(200)
+
+      expect(db.retentionData.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            [Op.or]: [
+              { agreementNumber: '1234567890' },
+              { frn: 1234567890 }
+            ]
+          }
+        })
+      )
+
+      const queryArg = db.retentionData.findAndCountAll.mock.calls[0][0]
+      expect(queryArg).not.toHaveProperty('limit')
+      expect(queryArg).not.toHaveProperty('offset')
+    })
+
+    test('should filter non-numeric frnAgreement by agreementNumber only', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure?frnAgreement=AG12345'
+      })
+
+      expect(res.statusCode).toBe(200)
+
+      expect(db.retentionData.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            [Op.or]: [
+              { agreementNumber: 'AG12345' }
+            ]
+          }
+        })
+      )
+
+      const queryArg = db.retentionData.findAndCountAll.mock.calls[0][0]
+      expect(queryArg).not.toHaveProperty('limit')
+      expect(queryArg).not.toHaveProperty('offset')
+    })
+
+    test('should filter by schemeId', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure?schemeId=2'
+      })
+
+      expect(res.statusCode).toBe(200)
+
+      expect(db.retentionData.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            schemeId: 2
+          }
+        })
+      )
+
+      const queryArg = db.retentionData.findAndCountAll.mock.calls[0][0]
+      expect(queryArg).not.toHaveProperty('limit')
+      expect(queryArg).not.toHaveProperty('offset')
+    })
+
+    test('should filter by frnAgreement and schemeId together', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure?frnAgreement=1234567890&schemeId=1'
+      })
+
+      expect(res.statusCode).toBe(200)
+
+      expect(db.retentionData.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            [Op.or]: [
+              { agreementNumber: '1234567890' },
+              { frn: 1234567890 }
+            ],
+            schemeId: 1
+          }
+        })
+      )
+
+      const queryArg = db.retentionData.findAndCountAll.mock.calls[0][0]
+      expect(queryArg).not.toHaveProperty('limit')
+      expect(queryArg).not.toHaveProperty('offset')
+    })
+
+    test('should return 400 when page is below minimum', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure?page=0'
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toMatch(/"page" must be greater than or equal to 1/)
+      expect(db.retentionData.findAndCountAll).not.toHaveBeenCalled()
+    })
+
+    test('should return 400 when pageSize is below minimum', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure?pageSize=0'
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toMatch(/"pageSize" must be greater than or equal to 1/)
+      expect(db.retentionData.findAndCountAll).not.toHaveBeenCalled()
+    })
+
+    test('should return 400 when schemeId is not a number', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure?schemeId=not-a-number'
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toMatch(/"schemeId" must be a number/)
+      expect(db.retentionData.findAndCountAll).not.toHaveBeenCalled()
+    })
   })
 
   describe('POST /closure/add', () => {
