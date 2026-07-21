@@ -132,11 +132,9 @@ module.exports = [
           closure.addedTime = now
         }
 
-        
-        for (const closure of data) { 
-        await db.retentionData.upsert(closure)
+        for (const closure of data) {
+          await db.retentionData.upsert(closure)
         }
-
 
         return h.response(ok.message).code(ok.statusCode)
       }
