@@ -3,6 +3,7 @@ const boom = require('@hapi/boom')
 const { Op } = require('sequelize')
 const db = require('../../data')
 const { getSchemeIdFromSourceSystem } = require('../../helpers/get-scheme-id-from-source-system')
+const { createRetentionDataExtract } = require('../../extract/create-retention-data-extract')
 
 const ok = { statusCode: 200, message: 'ok' }
 const defaultPage = 1
@@ -79,7 +80,6 @@ module.exports = [
       }
     }
   },
-
   {
     method: 'POST',
     path: '/closure/add',
@@ -155,6 +155,18 @@ module.exports = [
       handler: async (request, h) => {
         await db.retentionData.destroy({ where: { retentionDataId: request.payload.retentionDataId } })
         return h.response(ok.message).code(ok.statusCode)
+      }
+    }
+  },
+  {
+    method: 'GET',
+    path: '/closure/extract',
+    options: {
+      handler: async (request, h) => {
+        const filename = await createRetentionDataExtract()
+        return h.response({
+          filename
+        }).code(ok.statusCode)
       }
     }
   }

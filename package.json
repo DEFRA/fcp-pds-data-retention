@@ -29,12 +29,15 @@
     "@hapi/boom": "10.0.1",
     "@hapi/hapi": "21.3.2",
     "csv-parser": "3.2.0",
+    "csv-stringify": "6.8.1",
     "ffc-database": "1.0.27",
     "ffc-messaging": "2.10.8",
     "ffc-pay-event-publisher": "1.2.7",
     "hapi-pino": "12.1.0",
     "joi": "18.2.1",
     "log-timestamp": "0.3.0",
+    "pg": "8.22.0",
+    "pg-copy-streams": "7.0.0",
     "unzipper": "0.12.3"
   },
   "devDependencies": {

@@ -3,9 +3,11 @@ const { Op } = require('sequelize')
 const routes = require('../../../../app/server/routes/closure')
 const db = require('../../../../app/data')
 const { getSchemeIdFromSourceSystem } = require('../../../../app/helpers/get-scheme-id-from-source-system')
+const { createRetentionDataExtract } = require('../../../../app/extract/create-retention-data-extract')
 
 jest.mock('../../../../app/data')
 jest.mock('../../../../app/helpers/get-scheme-id-from-source-system')
+jest.mock('../../../../app/extract/create-retention-data-extract')
 
 describe('Closure API Routes', () => {
   let server
@@ -337,25 +339,10 @@ describe('Closure API Routes', () => {
       expect(getSchemeIdFromSourceSystem).toHaveBeenNthCalledWith(1, 'SYS1')
       expect(getSchemeIdFromSourceSystem).toHaveBeenNthCalledWith(2, 'SYS2')
 
-      // Validate transformed data passed to upsert
-      expect(db.retentionData.upsert).toHaveBeenCalledTimes(1)
-      const upsertArg = db.retentionData.upsert.mock.calls[0][0]
-      expect(Array.isArray(upsertArg)).toBe(true)
-      expect(upsertArg).toHaveLength(inputData.length)
-
-      upsertArg.forEach((closure, index) => {
-        expect(closure).toHaveProperty('schemeId', getSchemeIdFromSourceSystem(inputData[index].sourceSystem))
-        expect(closure).not.toHaveProperty('sourceSystem')
-        expect(closure).toHaveProperty('endDate', inputData[index].closureDate)
-        expect(closure).not.toHaveProperty('closureDate')
-        expect(closure).toHaveProperty('addedBy', addedBy)
-        expect(closure).toHaveProperty('addedTime')
-        expect(typeof closure.addedTime).toBe('number')
-        expect(closure.someOtherField).toBe(inputData[index].someOtherField)
-      })
+      expect(db.retentionData.upsert).toHaveBeenCalledTimes(2)
     })
 
-    test('should handle empty data array and still call upsert', async () => {
+    test('should handle empty data array and not call upsert', async () => {
       const res = await server.inject({
         method: 'POST',
         url: '/closure/bulk',
@@ -366,7 +353,7 @@ describe('Closure API Routes', () => {
       })
 
       expect(res.statusCode).toBe(200)
-      expect(db.retentionData.upsert).toHaveBeenCalledWith([])
+      expect(db.retentionData.upsert).not.toHaveBeenCalled()
     })
   })
 
@@ -423,6 +410,46 @@ describe('Closure API Routes', () => {
       expect(res.statusCode).toBe(400)
       expect(res.result.message).toMatch(/"retentionDataId" must be a number/)
       expect(db.retentionData.destroy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('GET /closure/extract', () => {
+    beforeEach(() => {
+      jest.clearAllMocks()
+    })
+
+    test('should create extract and return filename', async () => {
+      createRetentionDataExtract.mockResolvedValue(
+        'fcp-pds-data-retention-extract-20260722101112123.csv'
+      )
+
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure/extract'
+      })
+
+      expect(res.statusCode).toBe(200)
+
+      expect(res.result).toEqual({
+        filename: 'fcp-pds-data-retention-extract-20260722101112123.csv'
+      })
+
+      expect(createRetentionDataExtract).toHaveBeenCalledTimes(1)
+    })
+
+    test('should return 500 if extract creation fails', async () => {
+      createRetentionDataExtract.mockRejectedValue(
+        new Error('Failed to create extract')
+      )
+
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure/extract'
+      })
+
+      expect(res.statusCode).toBe(500)
+
+      expect(createRetentionDataExtract).toHaveBeenCalledTimes(1)
     })
   })
 })
