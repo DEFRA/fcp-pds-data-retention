@@ -161,7 +161,7 @@ module.exports = [
     method: 'GET',
     path: '/closure/extract',
     options: {
-      handler: async (request, h) => {
+      handler: async (_request, h) => {
         const filename = await createRetentionDataExtract()
         return h.response({
           filename

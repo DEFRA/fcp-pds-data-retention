@@ -45,13 +45,14 @@ const getBlob = async (filename, useInboundFolder = true) => {
 
 const uploadStreamToBlob = async (filename, readableStream, useInboundFolder = false) => {
   console.log(`Uploading stream to blob: ${filename}`)
+  const maxConcurrency = 5
   try {
     const blob = await getBlob(filename, useInboundFolder)
 
     await blob.uploadStream(
       readableStream,
       4 * 1024 * 1024,
-      5,
+      maxConcurrency,
       {
         blobHTTPHeaders: {
           blobContentType: 'text/csv; charset=utf-8'

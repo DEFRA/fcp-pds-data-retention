@@ -5,6 +5,7 @@ const db = require('../data')
 const { uploadStreamToBlob } = require('../storage')
 
 const batchSize = 5000
+const msAccuracy = 3
 
 const pad = (value, length = 2) => {
   return String(value).padStart(length, '0')
@@ -20,7 +21,7 @@ const getTimestamp = () => {
     pad(now.getHours()),
     pad(now.getMinutes()),
     pad(now.getSeconds()),
-    pad(now.getMilliseconds(), 3)
+    pad(now.getMilliseconds(), msAccuracy)
   ].join('')
 }
 
