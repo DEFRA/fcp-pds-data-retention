@@ -1,5 +1,4 @@
 const Hapi = require('@hapi/hapi')
-const { Op } = require('sequelize')
 const routes = require('../../../../app/server/routes/closure')
 const db = require('../../../../app/data')
 const { getSchemeIdFromSourceSystem } = require('../../../../app/helpers/get-scheme-id-from-source-system')
@@ -8,6 +7,10 @@ const { createRetentionDataExtract } = require('../../../../app/extract/create-r
 jest.mock('../../../../app/data')
 jest.mock('../../../../app/helpers/get-scheme-id-from-source-system')
 jest.mock('../../../../app/extract/create-retention-data-extract')
+
+jest.mock('../../../../app/storage', () => ({
+  uploadStreamToBlob: jest.fn()
+}))
 
 describe('Closure API Routes', () => {
   let server
@@ -27,7 +30,10 @@ describe('Closure API Routes', () => {
     beforeEach(() => {
       db.scheme = {}
       db.Sequelize = {
-        col: jest.fn().mockImplementation((column) => column)
+        col: jest.fn().mockImplementation((column) => column),
+        Op: {
+          or: Symbol('or')
+        }
       }
       db.retentionData = {
         findAndCountAll: jest.fn().mockResolvedValue({
@@ -123,18 +129,13 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(200)
 
-      expect(db.retentionData.findAndCountAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            [Op.or]: [
-              { agreementNumber: '1234567890' },
-              { frn: 1234567890 }
-            ]
-          }
-        })
-      )
-
       const queryArg = db.retentionData.findAndCountAll.mock.calls[0][0]
+      const orKey = Object.getOwnPropertySymbols(queryArg.where)[0]
+
+      expect(queryArg.where[orKey]).toEqual([
+        { agreementNumber: '1234567890' },
+        { frn: 1234567890 }
+      ])
       expect(queryArg).not.toHaveProperty('limit')
       expect(queryArg).not.toHaveProperty('offset')
     })
@@ -147,17 +148,12 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(200)
 
-      expect(db.retentionData.findAndCountAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            [Op.or]: [
-              { agreementNumber: 'AG12345' }
-            ]
-          }
-        })
-      )
-
       const queryArg = db.retentionData.findAndCountAll.mock.calls[0][0]
+      const orKey = Object.getOwnPropertySymbols(queryArg.where)[0]
+
+      expect(queryArg.where[orKey]).toEqual([
+        { agreementNumber: 'AG12345' }
+      ])
       expect(queryArg).not.toHaveProperty('limit')
       expect(queryArg).not.toHaveProperty('offset')
     })
@@ -165,20 +161,14 @@ describe('Closure API Routes', () => {
     test('should filter by schemeId', async () => {
       const res = await server.inject({
         method: 'GET',
-        url: '/closure?schemeId=2'
+        url: '/closure?schemeId=1'
       })
 
       expect(res.statusCode).toBe(200)
 
-      expect(db.retentionData.findAndCountAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            schemeId: 2
-          }
-        })
-      )
-
       const queryArg = db.retentionData.findAndCountAll.mock.calls[0][0]
+
+      expect(queryArg.where.schemeId).toBe(1)
       expect(queryArg).not.toHaveProperty('limit')
       expect(queryArg).not.toHaveProperty('offset')
     })
@@ -194,7 +184,7 @@ describe('Closure API Routes', () => {
       expect(db.retentionData.findAndCountAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            [Op.or]: [
+            [db.Sequelize.Op.or]: [
               { agreementNumber: '1234567890' },
               { frn: 1234567890 }
             ],

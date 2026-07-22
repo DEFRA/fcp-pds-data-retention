@@ -1,6 +1,5 @@
 const joi = require('joi')
 const boom = require('@hapi/boom')
-const { Op } = require('sequelize')
 const db = require('../../data')
 const { getSchemeIdFromSourceSystem } = require('../../helpers/get-scheme-id-from-source-system')
 const { createRetentionDataExtract } = require('../../extract/create-retention-data-extract')
@@ -43,7 +42,7 @@ module.exports = [
             frnAgreementFilters.push({ frn: Number(frnAgreement) })
           }
 
-          where[Op.or] = frnAgreementFilters
+          where[db.Sequelize.Op.or] = frnAgreementFilters
         }
 
         if (schemeId) {
