@@ -11,17 +11,29 @@ describe('saveValidRetentionData', () => {
     }
   })
 
-  test('should call bulkCreate with retention data', async () => {
+  const withAddedProps = (data) => {
+    const now = expect.any(Number)
+    return data.map(record => ({
+      ...record,
+      addedBy: 'DWH',
+      addedTime: now
+    }))
+  }
+
+  test('should call bulkCreate with retention data including addedBy and addedTime', async () => {
     const validRetentionData = [
       { frn: 123456, schemeId: 1, agreementNumber: 'AG001', endDate: '2025-12-31' }
     ]
 
     await saveValidRetentionData(validRetentionData)
 
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData, { updateOnDuplicate: ['endDate'] })
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(
+      withAddedProps(validRetentionData),
+      { updateOnDuplicate: ['endDate'] }
+    )
   })
 
-  test('should save single retention data record', async () => {
+  test('should save single retention data record with addedBy and addedTime', async () => {
     const validRetentionData = [
       { frn: 123456, schemeId: 1, agreementNumber: 'AG001', endDate: '2025-12-31' }
     ]
@@ -29,10 +41,13 @@ describe('saveValidRetentionData', () => {
     await saveValidRetentionData(validRetentionData)
 
     expect(db.retentionData.bulkCreate).toHaveBeenCalledTimes(1)
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData, { updateOnDuplicate: ['endDate'] })
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(
+      withAddedProps(validRetentionData),
+      { updateOnDuplicate: ['endDate'] }
+    )
   })
 
-  test('should save multiple retention data records', async () => {
+  test('should save multiple retention data records with addedBy and addedTime', async () => {
     const validRetentionData = [
       { frn: 111111, schemeId: 1, agreementNumber: 'AG001', endDate: '2025-12-31' },
       { frn: 222222, schemeId: 2, agreementNumber: 'AG002', endDate: '2026-06-30' },
@@ -41,15 +56,21 @@ describe('saveValidRetentionData', () => {
 
     await saveValidRetentionData(validRetentionData)
 
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData, { updateOnDuplicate: ['endDate'] })
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(
+      withAddedProps(validRetentionData),
+      { updateOnDuplicate: ['endDate'] }
+    )
   })
 
-  test('should save empty array', async () => {
+  test('should save empty array with addedBy and addedTime (no records)', async () => {
     const validRetentionData = []
 
     await saveValidRetentionData(validRetentionData)
 
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith([], { updateOnDuplicate: ['endDate'] })
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(
+      [],
+      { updateOnDuplicate: ['endDate'] }
+    )
   })
 
   test('should return created records', async () => {
@@ -102,7 +123,7 @@ describe('saveValidRetentionData', () => {
     )
   })
 
-  test('should preserve order of records', async () => {
+  test('should preserve order of records with addedBy and addedTime', async () => {
     const validRetentionData = [
       { frn: 111111, schemeId: 1, agreementNumber: 'AG001', endDate: '2025-12-31' },
       { frn: 222222, schemeId: 2, agreementNumber: 'AG002', endDate: '2026-06-30' },
@@ -117,10 +138,13 @@ describe('saveValidRetentionData', () => {
 
     await saveValidRetentionData(validRetentionData)
 
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData, { updateOnDuplicate: ['endDate'] })
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(
+      withAddedProps(validRetentionData),
+      { updateOnDuplicate: ['endDate'] }
+    )
   })
 
-  test('should handle large dataset', async () => {
+  test('should handle large dataset with addedBy and addedTime', async () => {
     const validRetentionData = Array.from({ length: 1000 }, (_, i) => ({
       frn: 100000 + i,
       schemeId: (i % 5) + 1,
@@ -130,10 +154,13 @@ describe('saveValidRetentionData', () => {
 
     await saveValidRetentionData(validRetentionData)
 
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData, { updateOnDuplicate: ['endDate'] })
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(
+      withAddedProps(validRetentionData),
+      { updateOnDuplicate: ['endDate'] }
+    )
   })
 
-  test('should pass all properties to bulkCreate', async () => {
+  test('should pass all properties to bulkCreate with addedBy and addedTime', async () => {
     const validRetentionData = [
       {
         frn: 123456,
@@ -150,19 +177,26 @@ describe('saveValidRetentionData', () => {
     expect(callArgs[0]).toHaveProperty('schemeId', 1)
     expect(callArgs[0]).toHaveProperty('agreementNumber', 'AG001')
     expect(callArgs[0]).toHaveProperty('endDate', '2025-12-31')
+
+    expect(callArgs[0]).toHaveProperty('addedBy', 'DWH')
+    expect(callArgs[0]).toHaveProperty('addedTime')
+    expect(typeof callArgs[0].addedTime).toBe('number')
   })
 
-  test('should handle null values in data', async () => {
+  test('should handle null values in data with addedBy and addedTime', async () => {
     const validRetentionData = [
       { frn: 123456, schemeId: 1, agreementNumber: null, endDate: '2025-12-31' }
     ]
 
     await saveValidRetentionData(validRetentionData)
 
-    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(validRetentionData, { updateOnDuplicate: ['endDate'] })
+    expect(db.retentionData.bulkCreate).toHaveBeenCalledWith(
+      withAddedProps(validRetentionData),
+      { updateOnDuplicate: ['endDate'] }
+    )
   })
 
-  test('should handle concurrent saves', async () => {
+  test('should handle concurrent saves with addedBy and addedTime', async () => {
     const data1 = [{ frn: 111111, schemeId: 1, agreementNumber: 'AG001', endDate: '2025-12-31' }]
     const data2 = [{ frn: 222222, schemeId: 2, agreementNumber: 'AG002', endDate: '2026-06-30' }]
 
@@ -176,5 +210,15 @@ describe('saveValidRetentionData', () => {
     ])
 
     expect(db.retentionData.bulkCreate).toHaveBeenCalledTimes(2)
+    expect(db.retentionData.bulkCreate).toHaveBeenNthCalledWith(
+      1,
+      withAddedProps(data1),
+      { updateOnDuplicate: ['endDate'] }
+    )
+    expect(db.retentionData.bulkCreate).toHaveBeenNthCalledWith(
+      2,
+      withAddedProps(data2),
+      { updateOnDuplicate: ['endDate'] }
+    )
   })
 })

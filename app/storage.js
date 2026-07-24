@@ -43,6 +43,31 @@ const getBlob = async (filename, useInboundFolder = true) => {
   return container.getBlockBlobClient(path)
 }
 
+const uploadStreamToBlob = async (filename, readableStream, useInboundFolder = false) => {
+  console.log(`Uploading stream to blob: ${filename}`)
+  const maxConcurrency = 5
+  try {
+    const blob = await getBlob(filename, useInboundFolder)
+
+    await blob.uploadStream(
+      readableStream,
+      4 * 1024 * 1024,
+      maxConcurrency,
+      {
+        blobHTTPHeaders: {
+          blobContentType: 'text/csv; charset=utf-8'
+        }
+      }
+    )
+
+    console.log(`Uploaded stream to blob: ${filename}`)
+    return filename
+  } catch (err) {
+    console.log(`An error occurred trying to upload blob: ${err.message}`)
+    throw err
+  }
+}
+
 const getInboundFile = async () => {
   containersInitialised ?? await initialiseContainers()
 
@@ -119,6 +144,7 @@ const deleteFile = async (filename) => {
 module.exports = {
   initialiseContainers,
   getBlob,
+  uploadStreamToBlob,
   getInboundFile,
   archiveFile,
   quarantineFile,

@@ -1,3 +1,6 @@
+jest.mock('../../../../app/storage', () => ({
+  uploadStreamToBlob: jest.fn()
+}))
 const { start } = require('../../../../app/server')
 
 describe('healthy test', () => {
