@@ -1,4 +1,4 @@
-const { PassThrough } = require('stream')
+const { PassThrough } = require('node:stream')
 
 const csvStream = new PassThrough({
   objectMode: true
@@ -43,7 +43,7 @@ describe('createRetentionDataExtract', () => {
 
     jest.useFakeTimers()
     jest.setSystemTime(
-      new Date('2026-07-22T10:11:12.123Z')
+      new Date(2026, 6, 22, 10, 11, 12, 123)
     )
   })
 
@@ -59,9 +59,9 @@ describe('createRetentionDataExtract', () => {
           frn: '123456',
           agreementNumber: 'AGR001',
           schemeName: 'SFI',
-          endDate: '2026-01-01',
+          endDate: new Date('2026-01-01T00:00:00.000Z'),
           addedBy: 'user1',
-          addedTime: '2026-01-01T10:00:00'
+          addedTime: new Date('2026-01-01T10:00:00.000Z')
         }
       ])
       .mockResolvedValueOnce([])
@@ -81,6 +81,16 @@ describe('createRetentionDataExtract', () => {
     )
   })
 
+  test('should pipe the csv stream to the upload stream', async () => {
+    db.retentionData.findAll.mockResolvedValueOnce([])
+
+    uploadStreamToBlob.mockResolvedValue()
+
+    await createRetentionDataExtract()
+
+    expect(csvStream.pipe).toHaveBeenCalledWith(expect.any(PassThrough))
+  })
+
   test('should write all rows returned from the database', async () => {
     db.retentionData.findAll
       .mockResolvedValueOnce([
@@ -89,18 +99,18 @@ describe('createRetentionDataExtract', () => {
           frn: '123',
           agreementNumber: 'AGR1',
           schemeName: 'Scheme A',
-          endDate: '2026-01-01',
+          endDate: new Date('2026-01-01T00:00:00.000Z'),
           addedBy: 'user1',
-          addedTime: 'time1'
+          addedTime: new Date('2026-01-01T10:00:00.000Z')
         },
         {
           retentionDataId: 2,
           frn: '456',
           agreementNumber: 'AGR2',
           schemeName: 'Scheme B',
-          endDate: '2026-01-02',
+          endDate: new Date('2026-01-02T00:00:00.000Z'),
           addedBy: 'user2',
-          addedTime: 'time2'
+          addedTime: new Date('2026-01-02T11:00:00.000Z')
         }
       ])
       .mockResolvedValueOnce([])
@@ -117,7 +127,7 @@ describe('createRetentionDataExtract', () => {
       schemeName: 'Scheme A',
       closureDate: '2026-01-01',
       addedBy: 'user1',
-      addedTime: 'time1'
+      addedTime: '2026-01-01'
     })
 
     expect(csvStream.write).toHaveBeenNthCalledWith(2, {
@@ -126,7 +136,36 @@ describe('createRetentionDataExtract', () => {
       schemeName: 'Scheme B',
       closureDate: '2026-01-02',
       addedBy: 'user2',
-      addedTime: 'time2'
+      addedTime: '2026-01-02'
+    })
+  })
+
+  test('should write empty strings for missing dates', async () => {
+    db.retentionData.findAll
+      .mockResolvedValueOnce([
+        {
+          retentionDataId: 1,
+          frn: '123',
+          agreementNumber: 'AGR1',
+          schemeName: 'Scheme A',
+          endDate: null,
+          addedBy: 'user1',
+          addedTime: null
+        }
+      ])
+      .mockResolvedValueOnce([])
+
+    uploadStreamToBlob.mockResolvedValue()
+
+    await createRetentionDataExtract()
+
+    expect(csvStream.write).toHaveBeenCalledWith({
+      frn: '123',
+      agreementNumber: 'AGR1',
+      schemeName: 'Scheme A',
+      closureDate: '',
+      addedBy: 'user1',
+      addedTime: ''
     })
   })
 
@@ -174,6 +213,40 @@ describe('createRetentionDataExtract', () => {
         }
       })
     )
+  })
+
+  test('should query retention data using the expected options', async () => {
+    db.retentionData.findAll.mockResolvedValueOnce([])
+
+    uploadStreamToBlob.mockResolvedValue()
+
+    await createRetentionDataExtract()
+
+    expect(db.retentionData.findAll).toHaveBeenCalledWith({
+      include: [{
+        model: db.scheme,
+        as: 'scheme',
+        attributes: []
+      }],
+      attributes: [
+        'retentionDataId',
+        'frn',
+        [db.Sequelize.col('scheme.name'), 'schemeName'],
+        'agreementNumber',
+        'endDate',
+        'addedBy',
+        'addedTime'
+      ],
+      where: {
+        retentionDataId: {
+          [db.Sequelize.Op.gt]: 0
+        }
+      },
+      order: [['retentionDataId', 'ASC']],
+      limit: 5000,
+      raw: true,
+      subQuery: false
+    })
   })
 
   test('should end the csv stream when processing is complete', async () => {

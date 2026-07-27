@@ -63,9 +63,9 @@ const writeRowsToCsv = async (csvStream, rows) => {
       frn: row.frn,
       agreementNumber: row.agreementNumber,
       schemeName: row.schemeName,
-      closureDate: row.endDate,
+      closureDate: row.endDate ? row.endDate.toISOString().split('T')[0] : '',
       addedBy: row.addedBy,
-      addedTime: row.addedTime
+      addedTime: row.addedTime ? row.addedTime.toISOString().split('T')[0] : ''
     })
 
     if (!canContinue) {

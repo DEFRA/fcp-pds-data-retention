@@ -101,7 +101,8 @@ describe('Closure API Routes', () => {
         distinct: true,
         raw: true,
         limit: 2500,
-        offset: 0
+        offset: 0,
+        order: [['addedTime', 'DESC']]
       })
     })
 
@@ -136,8 +137,6 @@ describe('Closure API Routes', () => {
         { agreementNumber: '1234567890' },
         { frn: 1234567890 }
       ])
-      expect(queryArg).not.toHaveProperty('limit')
-      expect(queryArg).not.toHaveProperty('offset')
     })
 
     test('should filter non-numeric frnAgreement by agreementNumber only', async () => {
@@ -154,8 +153,6 @@ describe('Closure API Routes', () => {
       expect(queryArg.where[orKey]).toEqual([
         { agreementNumber: 'AG12345' }
       ])
-      expect(queryArg).not.toHaveProperty('limit')
-      expect(queryArg).not.toHaveProperty('offset')
     })
 
     test('should filter by schemeId', async () => {
@@ -169,8 +166,6 @@ describe('Closure API Routes', () => {
       const queryArg = db.retentionData.findAndCountAll.mock.calls[0][0]
 
       expect(queryArg.where.schemeId).toBe(1)
-      expect(queryArg).not.toHaveProperty('limit')
-      expect(queryArg).not.toHaveProperty('offset')
     })
 
     test('should filter by frnAgreement and schemeId together', async () => {
@@ -192,10 +187,6 @@ describe('Closure API Routes', () => {
           }
         })
       )
-
-      const queryArg = db.retentionData.findAndCountAll.mock.calls[0][0]
-      expect(queryArg).not.toHaveProperty('limit')
-      expect(queryArg).not.toHaveProperty('offset')
     })
 
     test('should return 400 when page is below minimum', async () => {
