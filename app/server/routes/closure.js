@@ -61,15 +61,12 @@ module.exports = [
               [db.Sequelize.col('scheme.name'), 'schemeName']
             ]
           },
+          limit: pageSize,
+          offset: (page - 1) * pageSize,
           distinct: true,
-          raw: true
+          raw: true,
+          order: [['addedTime', 'DESC']]
         }
-
-        if (!frnAgreement && !schemeId) {
-          query.limit = pageSize
-          query.offset = (page - 1) * pageSize
-        }
-
         const { count, rows: closures } = await db.retentionData.findAndCountAll(query)
 
         return h.response({
