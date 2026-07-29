@@ -82,7 +82,7 @@ describe('mapRetentionData', () => {
     )
   })
 
-  test('should classify empty frm as unsuccessful', () => {
+  test('should classify empty frn as unsuccessful', () => {
     const retentionData = [
       { frn: null, scheme: schemeNames.BPS, agreementNumber: 'AG102', endDate: '2026-12-31' }
     ]
