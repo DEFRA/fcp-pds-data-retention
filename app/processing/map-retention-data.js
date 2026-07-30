@@ -12,7 +12,7 @@ const mapRetentionData = (retentionData) => {
       key => schemeIds[key]
     )
 
-    if (validSchemeKeys.length > 0) {
+    if (validSchemeKeys.length > 0 && data.frn && data.agreementNumber && data.endDate) {
       const { scheme, ...rest } = data
       for (const key of validSchemeKeys) {
         mappedData.successful.push({
