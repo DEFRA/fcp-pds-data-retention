@@ -6,9 +6,12 @@ module.exports = {
   CS: 'CS',
   BPS: 'BPS',
   ES: 'ES',
+  FC: 'FC',
   SFI23: 'SFI23',
   DELINKED: 'DELINKED',
   SFI_EXPANDED: 'SFI Expanded Offer',
   COHT_REVENUE: 'CS HT',
-  COHT_CAPITAL: 'CS HT'
+  COHT_CAPITAL: 'CS HT',
+  FPTT: 'FPTT',
+  WMP: 'WMP'
 }

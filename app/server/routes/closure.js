@@ -77,6 +77,39 @@ module.exports = [
     }
   },
   {
+    method: 'GET',
+    path: '/closure/exists',
+    options: {
+      validate: {
+        query: joi.object({
+          frn: joi.number().required(),
+          agreementNumber: joi.string().required(),
+          schemeId: joi.number().required()
+        }),
+        failAction: (_request, _h, error) => {
+          return boom.badRequest(error)
+        }
+      },
+      handler: async (request, h) => {
+        const { frn, agreementNumber, schemeId } = request.query
+
+        const closure = await db.retentionData.findOne({
+          where: {
+            frn,
+            agreementNumber,
+            schemeId
+          },
+          attributes: ['retentionDataId'],
+          raw: true
+        })
+
+        return h.response({
+          exists: !!closure
+        }).code(ok.statusCode)
+      }
+    }
+  },
+  {
     method: 'POST',
     path: '/closure/add',
     options: {
@@ -95,7 +128,7 @@ module.exports = [
       handler: async (request, h) => {
         const { frn, agreementNumber, schemeId, endDate, addedBy } = request.payload
 
-        await db.retentionData.upsert({
+        await db.retentionData.create({
           frn,
           schemeId,
           agreementNumber,
@@ -108,7 +141,6 @@ module.exports = [
       }
     }
   },
-
   {
     method: 'POST',
     path: '/closure/bulk',
@@ -117,20 +149,62 @@ module.exports = [
         const { data, addedBy } = request.payload
         const now = Date.now()
 
-        for (const closure of data) {
-          closure.schemeId = getSchemeIdFromSourceSystem(closure.sourceSystem)
+        const closures = data.map((closure, index) => {
+          const schemeId = getSchemeIdFromSourceSystem(closure.sourceSystem)
+
+          return {
+            ...closure,
+            row: index + 1,
+            schemeId,
+            endDate: closure.closureDate,
+            addedBy,
+            addedTime: now
+          }
+        }).map((closure) => {
           delete closure.sourceSystem
-
-          closure.endDate = closure.closureDate
           delete closure.closureDate
+          return closure
+        })
 
-          closure.addedBy = addedBy
-          closure.addedTime = now
+        const seen = new Set()
+
+        for (const closure of closures) {
+          const key = `${closure.frn}|${closure.agreementNumber}|${closure.schemeId}`
+
+          if (seen.has(key)) {
+            return boom.badRequest('The uploaded file contains duplicate records.')
+          }
+
+          seen.add(key)
         }
 
-        for (const closure of data) {
-          await db.retentionData.upsert(closure)
+        if (!closures.length) {
+          return h.response(ok.message).code(ok.statusCode)
         }
+
+        const existingClosures = await db.retentionData.findAll({
+          where: {
+            [db.Sequelize.Op.or]: closures.map(closure => ({
+              frn: closure.frn,
+              agreementNumber: closure.agreementNumber,
+              schemeId: closure.schemeId
+            }))
+          },
+          attributes: [
+            'frn',
+            'agreementNumber',
+            'schemeId'
+          ],
+          raw: true
+        })
+
+        if (existingClosures.length) {
+          return boom.badRequest('One or more of the supplied closure records already exist.')
+        }
+
+        await db.retentionData.bulkCreate(
+          closures.map(({ row, ...closure }) => closure)
+        )
 
         return h.response(ok.message).code(ok.statusCode)
       }
