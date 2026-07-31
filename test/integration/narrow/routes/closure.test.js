@@ -232,8 +232,8 @@ describe('Closure API Routes', () => {
       addedBy: 'tester'
     }
 
-    test('should successfully upsert closure and return 200', async () => {
-      db.retentionData = { upsert: jest.fn().mockResolvedValue() }
+    test('should successfully create closure and return 200', async () => {
+      db.retentionData = { create: jest.fn().mockResolvedValue() }
 
       const res = await server.inject({
         method: 'POST',
@@ -243,8 +243,9 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(200)
       expect(res.result).toBe('ok')
-      expect(db.retentionData.upsert).toHaveBeenCalledTimes(1)
-      expect(db.retentionData.upsert).toHaveBeenCalledWith(
+
+      expect(db.retentionData.create).toHaveBeenCalledTimes(1)
+      expect(db.retentionData.create).toHaveBeenCalledWith(
         expect.objectContaining({
           frn: validPayload.frn,
           agreementNumber: validPayload.agreementNumber,
@@ -278,29 +279,45 @@ describe('Closure API Routes', () => {
 
   describe('POST /closure/bulk', () => {
     beforeEach(() => {
-      db.retentionData = { upsert: jest.fn().mockResolvedValue() }
+      db.Sequelize = {
+        Op: {
+          or: Symbol('or')
+        }
+      }
+
+      db.retentionData = {
+        findAll: jest.fn().mockResolvedValue([]),
+        bulkCreate: jest.fn().mockResolvedValue()
+      }
+
       getSchemeIdFromSourceSystem.mockReset()
     })
 
-    test('should process bulk closures, transform data, upsert and return 200', async () => {
+    test('should process bulk closures, transform data, bulk create records and return 200', async () => {
       const inputData = [
         {
+          frn: 1234567890,
+          agreementNumber: 'AG12345',
           sourceSystem: 'SYS1',
-          closureDate: '2024-11-30',
-          someOtherField: 'value1'
+          closureDate: '2024-11-30'
         },
         {
+          frn: 9876543210,
+          agreementNumber: 'AG67890',
           sourceSystem: 'SYS2',
-          closureDate: '2025-01-15',
-          someOtherField: 'value2'
+          closureDate: '2025-01-15'
         }
       ]
+
       const addedBy = 'bulk-tester'
 
-      // Mock getSchemeIdFromSourceSystem to return dummy schemeIds
       getSchemeIdFromSourceSystem.mockImplementation((sourceSystem) => {
-        if (sourceSystem === 'SYS1') return 10
-        if (sourceSystem === 'SYS2') return 20
+        if (sourceSystem === 'SYS1') {
+          return 10
+        }
+        if (sourceSystem === 'SYS2') {
+          return 20
+        }
         return null
       })
 
@@ -316,14 +333,228 @@ describe('Closure API Routes', () => {
       expect(res.statusCode).toBe(200)
       expect(res.result).toBe('ok')
 
-      expect(getSchemeIdFromSourceSystem).toHaveBeenCalledTimes(inputData.length)
+      expect(getSchemeIdFromSourceSystem).toHaveBeenCalledTimes(2)
       expect(getSchemeIdFromSourceSystem).toHaveBeenNthCalledWith(1, 'SYS1')
       expect(getSchemeIdFromSourceSystem).toHaveBeenNthCalledWith(2, 'SYS2')
 
-      expect(db.retentionData.upsert).toHaveBeenCalledTimes(2)
+      expect(db.retentionData.findAll).toHaveBeenCalledTimes(1)
+
+      const findAllArg = db.retentionData.findAll.mock.calls[0][0]
+      const orKey = Object.getOwnPropertySymbols(findAllArg.where)[0]
+
+      expect(findAllArg.where[orKey]).toEqual([
+        {
+          frn: 1234567890,
+          agreementNumber: 'AG12345',
+          schemeId: 10
+        },
+        {
+          frn: 9876543210,
+          agreementNumber: 'AG67890',
+          schemeId: 20
+        }
+      ])
+
+      expect(findAllArg.attributes).toEqual([
+        'frn',
+        'agreementNumber',
+        'schemeId'
+      ])
+
+      expect(findAllArg.raw).toBe(true)
+
+      expect(db.retentionData.bulkCreate).toHaveBeenCalledTimes(1)
+      expect(db.retentionData.bulkCreate).toHaveBeenCalledWith([
+        expect.objectContaining({
+          frn: 1234567890,
+          agreementNumber: 'AG12345',
+          schemeId: 10,
+          endDate: '2024-11-30',
+          addedBy,
+          addedTime: expect.any(Number)
+        }),
+        expect.objectContaining({
+          frn: 9876543210,
+          agreementNumber: 'AG67890',
+          schemeId: 20,
+          endDate: '2025-01-15',
+          addedBy,
+          addedTime: expect.any(Number)
+        })
+      ])
+
+      const createdClosures = db.retentionData.bulkCreate.mock.calls[0][0]
+
+      expect(createdClosures[0]).not.toHaveProperty('row')
+      expect(createdClosures[0]).not.toHaveProperty('sourceSystem')
+      expect(createdClosures[0]).not.toHaveProperty('closureDate')
+
+      expect(createdClosures[1]).not.toHaveProperty('row')
+      expect(createdClosures[1]).not.toHaveProperty('sourceSystem')
+      expect(createdClosures[1]).not.toHaveProperty('closureDate')
     })
 
-    test('should handle empty data array and not call upsert', async () => {
+    test('should return 400 and not check database or bulk create when duplicate rows exist in upload', async () => {
+      const inputData = [
+        {
+          frn: 1234567890,
+          agreementNumber: 'AG12345',
+          sourceSystem: 'SYS1',
+          closureDate: '2024-11-30'
+        },
+        {
+          frn: 1234567890,
+          agreementNumber: 'AG12345',
+          sourceSystem: 'SYS1',
+          closureDate: '2024-12-31'
+        }
+      ]
+
+      getSchemeIdFromSourceSystem.mockReturnValue(10)
+
+      const res = await server.inject({
+        method: 'POST',
+        url: '/closure/bulk',
+        payload: {
+          data: inputData,
+          addedBy: 'bulk-tester'
+        }
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result).toEqual({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'The uploaded file contains duplicate records.'
+      })
+
+      expect(db.retentionData.findAll).not.toHaveBeenCalled()
+      expect(db.retentionData.bulkCreate).not.toHaveBeenCalled()
+    })
+
+    test('should return 400 and not bulk create records when matching closures already exist in database', async () => {
+      const inputData = [
+        {
+          frn: 1234567890,
+          agreementNumber: 'AG12345',
+          sourceSystem: 'SYS1',
+          closureDate: '2024-11-30'
+        },
+        {
+          frn: 9876543210,
+          agreementNumber: 'AG67890',
+          sourceSystem: 'SYS2',
+          closureDate: '2025-01-15'
+        }
+      ]
+
+      getSchemeIdFromSourceSystem.mockImplementation((sourceSystem) => {
+        if (sourceSystem === 'SYS1') {
+          return 10
+        }
+        if (sourceSystem === 'SYS2') {
+          return 20
+        }
+        return null
+      })
+
+      db.retentionData.findAll.mockResolvedValue([
+        {
+          frn: 9876543210,
+          agreementNumber: 'AG67890',
+          schemeId: 20
+        }
+      ])
+
+      const res = await server.inject({
+        method: 'POST',
+        url: '/closure/bulk',
+        payload: {
+          data: inputData,
+          addedBy: 'bulk-tester'
+        }
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result).toEqual({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'One or more of the supplied closure records already exist.'
+      })
+
+      expect(db.retentionData.findAll).toHaveBeenCalledTimes(1)
+      expect(db.retentionData.bulkCreate).not.toHaveBeenCalled()
+    })
+
+    test('should return 400 when more than one existing closure is found in database', async () => {
+      const inputData = [
+        {
+          frn: 1111111111,
+          agreementNumber: 'AG111',
+          sourceSystem: 'SYS1',
+          closureDate: '2024-11-30'
+        },
+        {
+          frn: 2222222222,
+          agreementNumber: 'AG222',
+          sourceSystem: 'SYS2',
+          closureDate: '2025-01-15'
+        },
+        {
+          frn: 3333333333,
+          agreementNumber: 'AG333',
+          sourceSystem: 'SYS3',
+          closureDate: '2025-02-01'
+        }
+      ]
+
+      getSchemeIdFromSourceSystem.mockImplementation((sourceSystem) => {
+        if (sourceSystem === 'SYS1') {
+          return 10
+        }
+        if (sourceSystem === 'SYS2') {
+          return 20
+        }
+        if (sourceSystem === 'SYS3') {
+          return 30
+        }
+        return null
+      })
+
+      db.retentionData.findAll.mockResolvedValue([
+        {
+          frn: 1111111111,
+          agreementNumber: 'AG111',
+          schemeId: 10
+        },
+        {
+          frn: 3333333333,
+          agreementNumber: 'AG333',
+          schemeId: 30
+        }
+      ])
+
+      const res = await server.inject({
+        method: 'POST',
+        url: '/closure/bulk',
+        payload: {
+          data: inputData,
+          addedBy: 'bulk-tester'
+        }
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result).toEqual({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'One or more of the supplied closure records already exist.'
+      })
+
+      expect(db.retentionData.findAll).toHaveBeenCalledTimes(1)
+      expect(db.retentionData.bulkCreate).not.toHaveBeenCalled()
+    })
+
+    test('should handle empty data array and not call findAll or bulkCreate', async () => {
       const res = await server.inject({
         method: 'POST',
         url: '/closure/bulk',
@@ -334,7 +565,10 @@ describe('Closure API Routes', () => {
       })
 
       expect(res.statusCode).toBe(200)
-      expect(db.retentionData.upsert).not.toHaveBeenCalled()
+      expect(res.result).toBe('ok')
+
+      expect(db.retentionData.findAll).not.toHaveBeenCalled()
+      expect(db.retentionData.bulkCreate).not.toHaveBeenCalled()
     })
   })
 
@@ -431,6 +665,106 @@ describe('Closure API Routes', () => {
       expect(res.statusCode).toBe(500)
 
       expect(createRetentionDataExtract).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('GET /closure/exists', () => {
+    beforeEach(() => {
+      db.retentionData = {
+        findOne: jest.fn()
+      }
+    })
+
+    test('should return exists true when matching closure is found', async () => {
+      db.retentionData.findOne.mockResolvedValue({
+        retentionDataId: 123
+      })
+
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure/exists?frn=1234567890&agreementNumber=AG12345&schemeId=1'
+      })
+
+      expect(res.statusCode).toBe(200)
+
+      expect(res.result).toEqual({
+        exists: true
+      })
+
+      expect(db.retentionData.findOne).toHaveBeenCalledWith({
+        where: {
+          frn: 1234567890,
+          agreementNumber: 'AG12345',
+          schemeId: 1
+        },
+        attributes: ['retentionDataId'],
+        raw: true
+      })
+    })
+
+    test('should return exists false when matching closure is not found', async () => {
+      db.retentionData.findOne.mockResolvedValue(null)
+
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure/exists?frn=1234567890&agreementNumber=AG12345&schemeId=1'
+      })
+
+      expect(res.statusCode).toBe(200)
+
+      expect(res.result).toEqual({
+        exists: false
+      })
+    })
+
+    test('should return 400 when frn is missing', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure/exists?agreementNumber=AG12345&schemeId=1'
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toMatch(/"frn" is required/)
+    })
+
+    test('should return 400 when agreementNumber is missing', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure/exists?frn=1234567890&schemeId=1'
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toMatch(/"agreementNumber" is required/)
+    })
+
+    test('should return 400 when schemeId is missing', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure/exists?frn=1234567890&agreementNumber=AG12345'
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toMatch(/"schemeId" is required/)
+    })
+
+    test('should return 400 when frn is not numeric', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure/exists?frn=abc&agreementNumber=AG12345&schemeId=1'
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toMatch(/"frn" must be a number/)
+    })
+
+    test('should return 400 when schemeId is not numeric', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure/exists?frn=1234567890&agreementNumber=AG12345&schemeId=abc'
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toMatch(/"schemeId" must be a number/)
     })
   })
 })

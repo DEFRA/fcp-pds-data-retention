@@ -14,5 +14,6 @@ module.exports = {
   SFI_EXPANDED: 14,
   COHT_REVENUE: 15,
   COHT_CAPITAL: 16,
-  FPTT: 17
+  FPTT: 17,
+  WMP: 18
 }
