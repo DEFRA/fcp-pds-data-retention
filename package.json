@@ -32,7 +32,7 @@
     "csv-stringify": "6.8.1",
     "ffc-database": "1.0.27",
     "ffc-messaging": "2.10.10",
-    "ffc-pay-event-publisher": "1.2.8",
+    "ffc-pay-event-publisher": "1.2.9",
     "hapi-pino": "12.1.0",
     "joi": "18.2.9",
     "log-timestamp": "0.3.0",
