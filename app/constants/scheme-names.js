@@ -13,5 +13,6 @@ module.exports = {
   COHT_REVENUE: 'CS HT',
   COHT_CAPITAL: 'CS HT',
   FPTT: 'FPTT',
-  WMP: 'WMP'
+  WMP: 'WMP',
+  SFI26: 'SFI26'
 }
