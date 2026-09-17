@@ -24,17 +24,17 @@
   "license": "OGL-UK-3.0",
   "dependencies": {
     "@azure/identity": "4.13.1",
-    "@azure/monitor-opentelemetry": "1.18.2",
+    "@azure/monitor-opentelemetry": "1.19.0",
     "@azure/storage-blob": "12.31.0",
     "@hapi/boom": "10.0.1",
     "@hapi/hapi": "21.3.2",
     "csv-parser": "3.2.0",
     "csv-stringify": "6.8.1",
     "ffc-database": "1.0.27",
-    "ffc-messaging": "2.10.8",
-    "ffc-pay-event-publisher": "1.2.7",
+    "ffc-messaging": "2.10.10",
+    "ffc-pay-event-publisher": "1.2.9",
     "hapi-pino": "12.1.0",
-    "joi": "18.2.1",
+    "joi": "18.2.9",
     "log-timestamp": "0.3.0",
     "pg": "8.22.0",
     "pg-copy-streams": "7.0.0",
@@ -50,8 +50,8 @@
     "nodemon": "3.0.1"
   },
   "overrides": {
-    "@opentelemetry/propagator-jaeger": "2.9.0",
-    "uuid": "11.1.1"
+    "uuid": "11.1.1",
+    "moment": "2.31.0"
   },
   "nodemonConfig": {
     "ignore": [
