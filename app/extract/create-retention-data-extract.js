@@ -1,11 +1,13 @@
 const { PassThrough } = require('node:stream')
 const { once } = require('node:events')
 const { stringify } = require('csv-stringify')
-const db = require('../data')
+const { retentionData } = require('../database')
+const TABLES = require('../constants/tables')
 const { uploadStreamToBlob } = require('../storage')
 
 const batchSize = 5000
 const msAccuracy = 3
+const retentionDataIdColumn = 'retentionData.retentionDataId'
 
 const pad = (value, length = 2) => {
   return String(value).padStart(length, '0')
@@ -30,34 +32,25 @@ const getExtractFilename = () => {
 }
 
 const getRetentionDataBatch = async (lastRetentionDataId) => {
-  return db.retentionData.findAll({
-    include: [{
-      model: db.scheme,
-      as: 'scheme',
-      attributes: []
-    }],
-    attributes: [
-      'retentionDataId',
-      'frn',
-      [db.Sequelize.col('scheme.name'), 'schemeName'],
-      'agreementNumber',
-      'endDate',
-      'addedBy',
-      'addedTime'
-    ],
-    where: {
-      retentionDataId: {
-        [db.Sequelize.Op.gt]: lastRetentionDataId
-      }
-    },
-    order: [['retentionDataId', 'ASC']],
-    limit: batchSize,
-    raw: true,
-    subQuery: false
-  })
+  return retentionData()
+    .select(
+      retentionDataIdColumn,
+      'retentionData.frn',
+      { schemeName: 'scheme.name' },
+      'retentionData.agreementNumber',
+      'retentionData.endDate',
+      'retentionData.addedBy',
+      'retentionData.addedTime'
+    )
+    .leftJoin({ scheme: TABLES.schemes }, 'retentionData.schemeId', 'scheme.schemeId')
+    .where(retentionDataIdColumn, '>', lastRetentionDataId)
+    .orderBy(retentionDataIdColumn, 'asc')
+    .limit(batchSize)
 }
 
 const writeRowsToCsv = async (csvStream, rows) => {
+  let needsDrain = false
+
   for (const row of rows) {
     const canContinue = csvStream.write({
       frn: row.frn,
@@ -68,27 +61,28 @@ const writeRowsToCsv = async (csvStream, rows) => {
       addedTime: row.addedTime ? row.addedTime.toISOString().split('T')[0] : ''
     })
 
-    if (!canContinue) {
-      await once(csvStream, 'drain')
-    }
+    needsDrain = needsDrain || !canContinue
+  }
+
+  if (needsDrain) {
+    await once(csvStream, 'drain')
   }
 }
 
-const streamRetentionDataToCsv = async (csvStream) => {
-  let lastRetentionDataId = 0
+const streamBatchesToCsv = async (csvStream, lastRetentionDataId = 0) => {
+  const rows = await getRetentionDataBatch(lastRetentionDataId)
 
-  while (true) {
-    const rows = await getRetentionDataBatch(lastRetentionDataId)
-
-    if (rows.length === 0) {
-      break
-    }
-
-    await writeRowsToCsv(csvStream, rows)
-
-    lastRetentionDataId = rows[rows.length - 1].retentionDataId
+  if (rows.length === 0) {
+    return
   }
 
+  await writeRowsToCsv(csvStream, rows)
+
+  await streamBatchesToCsv(csvStream, rows[rows.length - 1].retentionDataId)
+}
+
+const streamRetentionDataToCsv = async (csvStream) => {
+  await streamBatchesToCsv(csvStream)
   csvStream.end()
 }
 

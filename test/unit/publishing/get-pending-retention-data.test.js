@@ -1,22 +1,24 @@
-jest.mock('../../../app/data')
+const { createKnexMock } = require('../../helpers/mock-knex')
 
-const db = require('../../../app/data')
+const mockDb = createKnexMock(['retentionData'])
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
+}))
+
 const { getPendingRetentionData } = require('../../../app/publishing/get-pending-retention-data')
 
 describe('getPendingRetentionData', () => {
-  let mockFindAll
-
   beforeEach(() => {
     jest.clearAllMocks()
-    mockFindAll = jest.fn()
-    db.retentionData = {
-      findAll: mockFindAll
-    }
-    db.Sequelize = {
-      Op: {
-        lt: jest.fn(val => ({ [Symbol.for('lt')]: val }))
-      }
-    }
+    mockDb.builder.resolves([])
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
   })
 
   test('should return pending retention data', async () => {
@@ -24,82 +26,60 @@ describe('getPendingRetentionData', () => {
       { id: 1, endDate: new Date('2019-01-01') },
       { id: 2, endDate: new Date('2019-06-01') }
     ]
-    mockFindAll.mockResolvedValue(mockData)
+    mockDb.builder.resolves(mockData)
 
     const result = await getPendingRetentionData()
 
     expect(result).toEqual(mockData)
   })
 
+  test('should query the retentionData table on the pool', async () => {
+    await getPendingRetentionData()
+
+    expect(mockDb.tables.retentionData).toHaveBeenCalledWith()
+  })
+
   test('should query retention data with correct limit', async () => {
-    mockFindAll.mockResolvedValue([])
-
     await getPendingRetentionData()
 
-    const callArgs = mockFindAll.mock.calls[0][0]
-    expect(callArgs.limit).toBe(1000)
+    expect(mockDb.builder.limit).toHaveBeenCalledWith(1000)
   })
 
-  test('should set lock to true', async () => {
-    mockFindAll.mockResolvedValue([])
-
+  test('should lock the selected rows for update', async () => {
     await getPendingRetentionData()
 
-    const callArgs = mockFindAll.mock.calls[0][0]
-    expect(callArgs.lock).toBe(true)
+    expect(mockDb.builder.forUpdate).toHaveBeenCalledTimes(1)
   })
 
-  test('should filter records older than 7 years', async () => {
-    mockFindAll.mockResolvedValue([])
+  test('should filter records with an end date older than 7 years', async () => {
     const now = new Date(2026, 3, 7)
     jest.useFakeTimers()
     jest.setSystemTime(now)
 
     await getPendingRetentionData()
 
-    const callArgs = mockFindAll.mock.calls[0][0]
-    const filterDate = callArgs.where.endDate[db.Sequelize.Op.lt]
-
     const expectedDate = new Date(now)
     expectedDate.setFullYear(expectedDate.getFullYear() - 7)
 
-    expect(filterDate.getFullYear()).toBe(expectedDate.getFullYear())
-    expect(filterDate.getMonth()).toBe(expectedDate.getMonth())
-    expect(filterDate.getDate()).toBe(expectedDate.getDate())
-
-    jest.useRealTimers()
+    expect(mockDb.builder.where).toHaveBeenCalledWith('endDate', '<', expectedDate)
   })
 
   test('should throw error when database query fails', async () => {
-    const testError = new Error('Database connection failed')
-    mockFindAll.mockRejectedValue(testError)
+    mockDb.builder.rejects(new Error('Database connection failed'))
 
     await expect(getPendingRetentionData()).rejects.toThrow('Database connection failed')
   })
 
   test('should return empty array when no data found', async () => {
-    mockFindAll.mockResolvedValue([])
-
     const result = await getPendingRetentionData()
 
     expect(result).toEqual([])
   })
 
-  test('should use lt operator for date comparison', async () => {
-    mockFindAll.mockResolvedValue([])
-
-    await getPendingRetentionData()
-
-    const callArgs = mockFindAll.mock.calls[0][0]
-    expect(callArgs.where.endDate[db.Sequelize.Op.lt]).toBeDefined()
-  })
-
-  test('should call db.retentionData.findAll once per invocation', async () => {
-    mockFindAll.mockResolvedValue([])
-
+  test('should query the database once per invocation', async () => {
     await getPendingRetentionData()
     await getPendingRetentionData()
 
-    expect(mockFindAll).toHaveBeenCalledTimes(2)
+    expect(mockDb.tables.retentionData).toHaveBeenCalledTimes(2)
   })
 })
