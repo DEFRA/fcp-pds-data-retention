@@ -7,6 +7,7 @@ const { uploadStreamToBlob } = require('../storage')
 
 const batchSize = 5000
 const msAccuracy = 3
+const retentionDataIdColumn = 'retentionData.retentionDataId'
 
 const pad = (value, length = 2) => {
   return String(value).padStart(length, '0')
@@ -33,7 +34,7 @@ const getExtractFilename = () => {
 const getRetentionDataBatch = async (lastRetentionDataId) => {
   return retentionData()
     .select(
-      'retentionData.retentionDataId',
+      retentionDataIdColumn,
       'retentionData.frn',
       { schemeName: 'scheme.name' },
       'retentionData.agreementNumber',
@@ -42,12 +43,14 @@ const getRetentionDataBatch = async (lastRetentionDataId) => {
       'retentionData.addedTime'
     )
     .leftJoin({ scheme: TABLES.schemes }, 'retentionData.schemeId', 'scheme.schemeId')
-    .where('retentionData.retentionDataId', '>', lastRetentionDataId)
-    .orderBy('retentionData.retentionDataId', 'asc')
+    .where(retentionDataIdColumn, '>', lastRetentionDataId)
+    .orderBy(retentionDataIdColumn, 'asc')
     .limit(batchSize)
 }
 
 const writeRowsToCsv = async (csvStream, rows) => {
+  let needsDrain = false
+
   for (const row of rows) {
     const canContinue = csvStream.write({
       frn: row.frn,
@@ -58,27 +61,28 @@ const writeRowsToCsv = async (csvStream, rows) => {
       addedTime: row.addedTime ? row.addedTime.toISOString().split('T')[0] : ''
     })
 
-    if (!canContinue) {
-      await once(csvStream, 'drain')
-    }
+    needsDrain = needsDrain || !canContinue
+  }
+
+  if (needsDrain) {
+    await once(csvStream, 'drain')
   }
 }
 
-const streamRetentionDataToCsv = async (csvStream) => {
-  let lastRetentionDataId = 0
+const streamBatchesToCsv = async (csvStream, lastRetentionDataId = 0) => {
+  const rows = await getRetentionDataBatch(lastRetentionDataId)
 
-  while (true) {
-    const rows = await getRetentionDataBatch(lastRetentionDataId)
-
-    if (rows.length === 0) {
-      break
-    }
-
-    await writeRowsToCsv(csvStream, rows)
-
-    lastRetentionDataId = rows[rows.length - 1].retentionDataId
+  if (rows.length === 0) {
+    return
   }
 
+  await writeRowsToCsv(csvStream, rows)
+
+  await streamBatchesToCsv(csvStream, rows[rows.length - 1].retentionDataId)
+}
+
+const streamRetentionDataToCsv = async (csvStream) => {
+  await streamBatchesToCsv(csvStream)
   csvStream.end()
 }
 

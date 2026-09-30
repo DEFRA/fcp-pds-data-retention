@@ -10,10 +10,12 @@ const defaultPage = 1
 const minPageSize = 1
 const defaultPageSize = 2500
 
+const schemeIdColumn = 'retentionData.schemeId'
+
 const closureColumns = [
   'retentionData.retentionDataId',
   'retentionData.frn',
-  'retentionData.schemeId',
+  schemeIdColumn,
   'retentionData.agreementNumber',
   'retentionData.endDate',
   'retentionData.addedBy',
@@ -32,7 +34,7 @@ const applyClosureFilters = (frnAgreement, schemeId) => (query) => {
   }
 
   if (schemeId) {
-    query.where('retentionData.schemeId', schemeId)
+    query.where(schemeIdColumn, schemeId)
   }
 }
 
@@ -67,7 +69,7 @@ module.exports = [
             .first(),
           retentionData()
             .select(...closureColumns, { schemeName: 'scheme.name' })
-            .leftJoin({ scheme: TABLES.schemes }, 'retentionData.schemeId', 'scheme.schemeId')
+            .leftJoin({ scheme: TABLES.schemes }, schemeIdColumn, 'scheme.schemeId')
             .modify(filters)
             .orderBy('retentionData.addedTime', 'desc')
             .limit(pageSize)
