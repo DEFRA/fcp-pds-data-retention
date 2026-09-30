@@ -1,6 +1,7 @@
 const joi = require('joi')
 const boom = require('@hapi/boom')
-const db = require('../../data')
+const { retentionData } = require('../../database')
+const TABLES = require('../../constants/tables')
 const { getSchemeIdFromSourceSystem } = require('../../helpers/get-scheme-id-from-source-system')
 const { createRetentionDataExtract } = require('../../extract/create-retention-data-extract')
 
@@ -8,6 +9,32 @@ const ok = { statusCode: 200, message: 'ok' }
 const defaultPage = 1
 const minPageSize = 1
 const defaultPageSize = 2500
+
+const closureColumns = [
+  'retentionData.retentionDataId',
+  'retentionData.frn',
+  'retentionData.schemeId',
+  'retentionData.agreementNumber',
+  'retentionData.endDate',
+  'retentionData.addedBy',
+  'retentionData.addedTime'
+]
+
+const applyClosureFilters = (frnAgreement, schemeId) => (query) => {
+  if (frnAgreement) {
+    query.where(function () {
+      this.where('retentionData.agreementNumber', frnAgreement)
+
+      if (/^\d+$/.test(frnAgreement)) {
+        this.orWhere('retentionData.frn', Number(frnAgreement))
+      }
+    })
+  }
+
+  if (schemeId) {
+    query.where('retentionData.schemeId', schemeId)
+  }
+}
 
 module.exports = [
   {
@@ -31,47 +58,25 @@ module.exports = [
           schemeId
         } = request.query
 
-        const where = {}
+        const filters = applyClosureFilters(frnAgreement, schemeId)
 
-        if (frnAgreement) {
-          const frnAgreementFilters = [
-            { agreementNumber: frnAgreement }
-          ]
-
-          if (/^\d+$/.test(frnAgreement)) {
-            frnAgreementFilters.push({ frn: Number(frnAgreement) })
-          }
-
-          where[db.Sequelize.Op.or] = frnAgreementFilters
-        }
-
-        if (schemeId) {
-          where.schemeId = schemeId
-        }
-
-        const query = {
-          where,
-          include: [{
-            model: db.scheme,
-            as: 'scheme',
-            attributes: []
-          }],
-          attributes: {
-            include: [
-              [db.Sequelize.col('scheme.name'), 'schemeName']
-            ]
-          },
-          limit: pageSize,
-          offset: (page - 1) * pageSize,
-          distinct: true,
-          raw: true,
-          order: [['addedTime', 'DESC']]
-        }
-        const { count, rows: closures } = await db.retentionData.findAndCountAll(query)
+        const [{ count }, closures] = await Promise.all([
+          retentionData()
+            .count({ count: '*' })
+            .modify(filters)
+            .first(),
+          retentionData()
+            .select(...closureColumns, { schemeName: 'scheme.name' })
+            .leftJoin({ scheme: TABLES.schemes }, 'retentionData.schemeId', 'scheme.schemeId')
+            .modify(filters)
+            .orderBy('retentionData.addedTime', 'desc')
+            .limit(pageSize)
+            .offset((page - 1) * pageSize)
+        ])
 
         return h.response({
           closures,
-          count
+          count: Number(count)
         })
       }
     }
@@ -93,15 +98,14 @@ module.exports = [
       handler: async (request, h) => {
         const { frn, agreementNumber, schemeId } = request.query
 
-        const closure = await db.retentionData.findOne({
-          where: {
+        const closure = (await retentionData()
+          .select('retentionDataId')
+          .where({
             frn,
             agreementNumber,
             schemeId
-          },
-          attributes: ['retentionDataId'],
-          raw: true
-        })
+          })
+          .first()) ?? null
 
         return h.response({
           exists: !!closure
@@ -128,13 +132,13 @@ module.exports = [
       handler: async (request, h) => {
         const { frn, agreementNumber, schemeId, endDate, addedBy } = request.payload
 
-        await db.retentionData.create({
+        await retentionData().insert({
           frn,
           schemeId,
           agreementNumber,
           endDate,
           addedBy,
-          addedTime: Date.now()
+          addedTime: new Date()
         })
 
         return h.response(ok.message).code(ok.statusCode)
@@ -147,7 +151,7 @@ module.exports = [
     options: {
       handler: async (request, h) => {
         const { data, addedBy } = request.payload
-        const now = Date.now()
+        const now = new Date()
 
         const closures = data.map((closure, index) => {
           const schemeId = getSchemeIdFromSourceSystem(closure.sourceSystem)
@@ -182,28 +186,35 @@ module.exports = [
           return h.response(ok.message).code(ok.statusCode)
         }
 
-        const existingClosures = await db.retentionData.findAll({
-          where: {
-            [db.Sequelize.Op.or]: closures.map(closure => ({
-              frn: closure.frn,
-              agreementNumber: closure.agreementNumber,
-              schemeId: closure.schemeId
-            }))
-          },
-          attributes: [
+        const existingClosures = await retentionData()
+          .select(
             'frn',
             'agreementNumber',
             'schemeId'
-          ],
-          raw: true
-        })
+          )
+          .where(function () {
+            for (const closure of closures) {
+              this.orWhere({
+                frn: closure.frn,
+                agreementNumber: closure.agreementNumber,
+                schemeId: closure.schemeId
+              })
+            }
+          })
 
         if (existingClosures.length) {
           return boom.badRequest('One or more of the supplied closure records already exist.')
         }
 
-        await db.retentionData.bulkCreate(
-          closures.map(({ row, ...closure }) => closure)
+        await retentionData().insert(
+          closures.map(closure => ({
+            frn: closure.frn,
+            schemeId: closure.schemeId,
+            agreementNumber: closure.agreementNumber,
+            endDate: closure.endDate,
+            addedBy: closure.addedBy,
+            addedTime: closure.addedTime
+          }))
         )
 
         return h.response(ok.message).code(ok.statusCode)
@@ -223,7 +234,7 @@ module.exports = [
         }
       },
       handler: async (request, h) => {
-        await db.retentionData.destroy({ where: { retentionDataId: request.payload.retentionDataId } })
+        await retentionData().where({ retentionDataId: request.payload.retentionDataId }).del()
         return h.response(ok.message).code(ok.statusCode)
       }
     }

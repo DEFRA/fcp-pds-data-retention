@@ -1,17 +1,24 @@
-const db = require('../data')
+const { retentionData } = require('../database')
 
 const saveValidRetentionData = async (validRetentionData) => {
-  const transformedData = validRetentionData.map(retentionData => {
+  if (validRetentionData.length === 0) {
+    return []
+  }
+
+  const transformedData = validRetentionData.map(data => {
     return {
-      ...retentionData,
-      frn: Number(retentionData.frn),
+      frn: Number(data.frn),
+      schemeId: data.schemeId,
+      agreementNumber: data.agreementNumber,
+      endDate: data.endDate,
       addedBy: 'DWH',
-      addedTime: Date.now()
+      addedTime: new Date()
     }
   })
-  return db.retentionData.bulkCreate(transformedData, {
-    updateOnDuplicate: ['endDate']
-  })
+  return retentionData()
+    .insert(transformedData)
+    .onConflict(['frn', 'schemeId', 'agreementNumber'])
+    .merge(['endDate'])
 }
 
 module.exports = {
