@@ -7,13 +7,15 @@ const tenSeconds = 10000
 const schema = Joi.object({
   processingActive: Joi.boolean().default(true),
   pollingInterval: Joi.number().default(oneMinute),
-  publishingInterval: Joi.number().default(tenSeconds)
+  publishingInterval: Joi.number().default(tenSeconds),
+  sendSitiAgriRetention: Joi.boolean().default(false),
 })
 
 const config = {
   processingActive: stringToBoolean(process.env.PROCESSING_ACTIVE),
   pollingInterval: process.env.POLLING_INTERVAL,
-  publishingInterval: process.env.PUBLISHING_INTERVAL
+  publishingInterval: process.env.PUBLISHING_INTERVAL,
+  sendSitiAgriRetention: stringToBoolean(process.env.SEND_SITI_AGRI_RETENTION)
 }
 
 const result = schema.validate(config, {
