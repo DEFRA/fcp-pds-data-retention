@@ -2,11 +2,16 @@ jest.mock('../../../app/publishing/get-pending-retention-data')
 jest.mock('../../../app/messaging/send-publish-message')
 jest.mock('../../../app/data')
 jest.mock('../../../app/publishing/get-mapped-agreement-number')
+jest.mock('ffc-pay-schemes', () => ({
+  ...jest.requireActual('ffc-pay-schemes'),
+  isSitiAgri: jest.fn(() => false)
+}))
 
 const { getPendingRetentionData } = require('../../../app/publishing/get-pending-retention-data')
 const sendPublishMessage = require('../../../app/messaging/send-publish-message')
 const db = require('../../../app/data')
 const { getMappedAgreementNumber } = require('../../../app/publishing/get-mapped-agreement-number')
+const { isSitiAgri } = require('ffc-pay-schemes')
 const { publishRetentionData } = require('../../../app/publishing/publish-retention-data')
 const { SFI_PILOT, CS, MANUAL, SFI23, WMP } = require('../../../app/constants/schemes')
 const { SFI_PILOT: SFI_PILOT_PILLAR, CS: CS_PILLAR, SFI23: SFI23_PILLAR } = require('../../../app/constants/pillars')
@@ -19,6 +24,7 @@ describe('publishRetentionData', () => {
     }
     sendPublishMessage.mockResolvedValue(undefined)
     getMappedAgreementNumber.mockImplementation((schemeId, agreementNumber) => agreementNumber)
+    isSitiAgri.mockReturnValue(false)
   })
 
   test('should get pending retention data', async () => {
@@ -283,5 +289,37 @@ describe('publishRetentionData', () => {
     expect(db.retentionData.destroy).toHaveBeenCalledWith({
       where: { retentionDataId: [1] }
     })
+  })
+
+  test('should skip Siti Agri data when sendSitiAgriRetention is false', async () => {
+    const mockData = [
+      { retentionDataId: 1, frn: 'FRN001', agreementNumber: 'AGR001', schemeId: SFI_PILOT }
+    ]
+    getPendingRetentionData.mockResolvedValue(mockData)
+    isSitiAgri.mockReturnValue(true)
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
+
+    await publishRetentionData()
+
+    expect(sendPublishMessage).not.toHaveBeenCalled()
+    expect(db.retentionData.destroy).not.toHaveBeenCalled()
+    expect(consoleSpy).toHaveBeenCalledWith('Skipping Siti Agri retention data for frn: FRN001, agreement number: AGR001')
+    consoleSpy.mockRestore()
+  })
+
+  test('should process non-Siti Agri data when sendSitiAgriRetention is false', async () => {
+    const mockData = [
+      { retentionDataId: 1, frn: 'FRN001', agreementNumber: 'AGR001', schemeId: WMP }
+    ]
+    getPendingRetentionData.mockResolvedValue(mockData)
+    isSitiAgri.mockImplementation((schemeId) => schemeId === SFI_PILOT)
+
+    await publishRetentionData()
+
+    expect(sendPublishMessage).toHaveBeenCalledTimes(1)
+    expect(sendPublishMessage).toHaveBeenCalledWith(expect.objectContaining({
+      retentionDataId: 1,
+      schemeId: WMP
+    }))
   })
 })
