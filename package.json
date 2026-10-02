@@ -24,7 +24,7 @@
   "license": "OGL-UK-3.0",
   "dependencies": {
     "@azure/identity": "4.13.1",
-    "@azure/monitor-opentelemetry": "1.19.0",
+    "@azure/monitor-opentelemetry": "1.20.0",
     "@azure/storage-blob": "12.31.0",
     "@hapi/boom": "10.0.1",
     "@hapi/hapi": "21.3.2",
