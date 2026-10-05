@@ -1,4 +1,6 @@
 const db = require('../data')
+const { processingConfig } = require('../config')
+const { sitiAgriSchemes } = require('ffc-pay-schemes')
 
 const retentionYears = 7
 const publishingLimit = 1000
@@ -6,10 +8,16 @@ const publishingLimit = 1000
 const getPendingRetentionData = async () => {
   const retentionYearsAgo = new Date()
   retentionYearsAgo.setFullYear(retentionYearsAgo.getFullYear() - retentionYears)
+  const where = {
+    endDate: { [db.Sequelize.Op.lt]: retentionYearsAgo }
+  }
+
+  if (!processingConfig.sendSitiAgriRetention) {
+    where.schemeId = { [db.Sequelize.Op.notIn]: sitiAgriSchemes }
+  }
+
   return db.retentionData.findAll({
-    where: {
-      endDate: { [db.Sequelize.Op.lt]: retentionYearsAgo }
-    },
+    where,
     limit: publishingLimit,
     raw: true,
     lock: true

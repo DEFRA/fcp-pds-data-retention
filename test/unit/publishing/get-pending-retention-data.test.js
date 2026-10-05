@@ -1,6 +1,16 @@
 jest.mock('../../../app/data')
+jest.mock('../../../app/config', () => ({
+  ...jest.requireActual('../../../app/config'),
+  processingConfig: {
+    sendSitiAgriRetention: false
+  }
+}))
+jest.mock('ffc-pay-schemes', () => ({
+  sitiAgriSchemes: [1, 2, 3, 5, 6, 12, 13, 14, 15, 16, 19]
+}))
 
 const db = require('../../../app/data')
+const { processingConfig } = require('../../../app/config')
 const { getPendingRetentionData } = require('../../../app/publishing/get-pending-retention-data')
 
 describe('getPendingRetentionData', () => {
@@ -8,13 +18,15 @@ describe('getPendingRetentionData', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    processingConfig.sendSitiAgriRetention = false
     mockFindAll = jest.fn()
     db.retentionData = {
       findAll: mockFindAll
     }
     db.Sequelize = {
       Op: {
-        lt: jest.fn(val => ({ [Symbol.for('lt')]: val }))
+        lt: jest.fn(val => ({ [Symbol.for('lt')]: val })),
+        notIn: jest.fn(val => ({ [Symbol.for('notIn')]: val }))
       }
     }
   })
@@ -92,6 +104,27 @@ describe('getPendingRetentionData', () => {
 
     const callArgs = mockFindAll.mock.calls[0][0]
     expect(callArgs.where.endDate[db.Sequelize.Op.lt]).toBeDefined()
+  })
+
+  test('should exclude Siti Agri schemes when publishing is disabled', async () => {
+    mockFindAll.mockResolvedValue([])
+
+    await getPendingRetentionData()
+
+    const callArgs = mockFindAll.mock.calls[0][0]
+
+    expect(callArgs.where.schemeId[db.Sequelize.Op.notIn]).toEqual([1, 2, 3, 5, 6, 12, 13, 14, 15, 16, 19])
+  })
+
+  test('should include Siti Agri schemes when publishing is enabled', async () => {
+    processingConfig.sendSitiAgriRetention = true
+    mockFindAll.mockResolvedValue([])
+
+    await getPendingRetentionData()
+
+    const callArgs = mockFindAll.mock.calls[0][0]
+
+    expect(callArgs.where.schemeId).toBeUndefined()
   })
 
   test('should call db.retentionData.findAll once per invocation', async () => {
