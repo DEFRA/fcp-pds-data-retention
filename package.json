@@ -1,6 +1,6 @@
 {
   "name": "fcp-pds-data-retention",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Payment & Document Services shared data retention processing capabilities",
   "homepage": "https://github.com/DEFRA/fcp-pds-data-retention",
   "main": "app/index.js",
@@ -24,7 +24,7 @@
   "license": "OGL-UK-3.0",
   "dependencies": {
     "@azure/identity": "4.13.1",
-    "@azure/monitor-opentelemetry": "1.19.0",
+    "@azure/monitor-opentelemetry": "1.20.0",
     "@azure/storage-blob": "12.31.0",
     "@hapi/boom": "10.0.1",
     "@hapi/hapi": "21.3.2",
@@ -33,6 +33,7 @@
     "ffc-database": "1.0.27",
     "ffc-messaging": "2.10.10",
     "ffc-pay-event-publisher": "1.2.9",
+    "ffc-pay-schemes": "1.1.1",
     "hapi-pino": "12.1.0",
     "joi": "18.2.9",
     "log-timestamp": "0.3.0",
