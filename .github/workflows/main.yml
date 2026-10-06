@@ -14,5 +14,4 @@ jobs:
     uses: DEFRA/ffc-shared-actions/.github/workflows/version-bump.yml@main
     with:
       node-version: '24'
-      audit-level: 'critical'
     secrets: inherit
