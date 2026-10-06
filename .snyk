@@ -1,4 +1,10 @@
 # Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
 version: v1.19.0
-ignore: {}
+
+ignore:
+  SNYK-JS-UNZIPPER-18365659:
+    - '*':
+        reason: "No upgrade or patch currently available for unzipper@0.12.3. Risk accepted pending upstream fix."
+        expires: 2026-09-29T00:00:00.000Z
+
 patch: {}
