@@ -1,5 +1,3 @@
-const { isSitiAgri } = require('ffc-pay-schemes')
-const { sendSitiAgriRetention } = require('../config/processing')
 const { getPendingRetentionData } = require('./get-pending-retention-data')
 const sendPublishMessage = require('../messaging/send-publish-message')
 const db = require('../data')
@@ -14,19 +12,7 @@ const publishRetentionData = async () => {
     return
   }
 
-  const filteredRetentionData = pendingRetentionData.filter(pending => {
-    if (isSitiAgri(pending.schemeId) && !sendSitiAgriRetention) {
-      console.log(`Skipping Siti Agri retention data for frn: ${pending.frn}, agreement number: ${pending.agreementNumber}`)
-      return false
-    }
-    return true
-  })
-
-  if (filteredRetentionData.length === 0) {
-    return
-  }
-
-  const messages = filteredRetentionData.flatMap(pending => {
+  const messages = pendingRetentionData.flatMap(pending => {
     console.log(`Data passed 7 year retention for frn: ${pending.frn}, agreement number: ${pending.agreementNumber}`)
     pending.simplifiedAgreementNumber = pending.agreementNumber
     pending.agreementNumber = getMappedAgreementNumber(pending.schemeId, pending.agreementNumber)
@@ -43,7 +29,7 @@ const publishRetentionData = async () => {
 
   await db.retentionData.destroy({
     where: {
-      retentionDataId: filteredRetentionData.map(p => p.retentionDataId)
+      retentionDataId: pendingRetentionData.map(p => p.retentionDataId)
     }
   })
 
