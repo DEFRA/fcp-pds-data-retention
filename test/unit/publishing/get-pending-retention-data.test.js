@@ -6,11 +6,12 @@ jest.mock('../../../app/config', () => ({
   }
 }))
 jest.mock('ffc-pay-schemes', () => ({
-  sitiAgriSchemes: [1, 2, 3, 5, 6, 12, 13, 14, 15, 16, 19]
+  getSitiAgriSchemeIds: jest.fn().mockResolvedValue([1, 2, 3, 5, 6, 12, 13, 14, 15, 16, 19])
 }))
 
 const db = require('../../../app/data')
 const { processingConfig } = require('../../../app/config')
+const { getSitiAgriSchemeIds } = require('ffc-pay-schemes')
 const { getPendingRetentionData } = require('../../../app/publishing/get-pending-retention-data')
 
 describe('getPendingRetentionData', () => {
@@ -19,6 +20,7 @@ describe('getPendingRetentionData', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     processingConfig.sendSitiAgriRetention = false
+    getSitiAgriSchemeIds.mockResolvedValue([1, 2, 3, 5, 6, 12, 13, 14, 15, 16, 19])
     mockFindAll = jest.fn()
     db.retentionData = {
       findAll: mockFindAll
@@ -114,6 +116,15 @@ describe('getPendingRetentionData', () => {
     const callArgs = mockFindAll.mock.calls[0][0]
 
     expect(callArgs.where.schemeId[db.Sequelize.Op.notIn]).toEqual([1, 2, 3, 5, 6, 12, 13, 14, 15, 16, 19])
+    expect(getSitiAgriSchemeIds).toHaveBeenCalledTimes(1)
+  })
+
+  test('should throw error when Siti Agri scheme lookup fails', async () => {
+    const testError = new Error('Scheme lookup failed')
+    getSitiAgriSchemeIds.mockRejectedValue(testError)
+
+    await expect(getPendingRetentionData()).rejects.toThrow('Scheme lookup failed')
+    expect(mockFindAll).not.toHaveBeenCalled()
   })
 
   test('should include Siti Agri schemes when publishing is enabled', async () => {
@@ -125,6 +136,7 @@ describe('getPendingRetentionData', () => {
     const callArgs = mockFindAll.mock.calls[0][0]
 
     expect(callArgs.where.schemeId).toBeUndefined()
+    expect(getSitiAgriSchemeIds).not.toHaveBeenCalled()
   })
 
   test('should call db.retentionData.findAll once per invocation', async () => {

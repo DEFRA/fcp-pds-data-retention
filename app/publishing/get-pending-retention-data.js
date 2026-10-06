@@ -1,6 +1,6 @@
 const db = require('../data')
 const { processingConfig } = require('../config')
-const { sitiAgriSchemes } = require('ffc-pay-schemes')
+const { getSitiAgriSchemeIds } = require('ffc-pay-schemes')
 
 const retentionYears = 7
 const publishingLimit = 1000
@@ -13,6 +13,7 @@ const getPendingRetentionData = async () => {
   }
 
   if (!processingConfig.sendSitiAgriRetention) {
+    const sitiAgriSchemes = await getSitiAgriSchemeIds()
     where.schemeId = { [db.Sequelize.Op.notIn]: sitiAgriSchemes }
   }
 
