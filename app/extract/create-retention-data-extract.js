@@ -49,8 +49,6 @@ const getRetentionDataBatch = async (lastRetentionDataId) => {
 }
 
 const writeRowsToCsv = async (csvStream, rows) => {
-  let needsDrain = false
-
   for (const row of rows) {
     const canContinue = csvStream.write({
       frn: row.frn,
@@ -61,28 +59,27 @@ const writeRowsToCsv = async (csvStream, rows) => {
       addedTime: row.addedTime ? row.addedTime.toISOString().split('T')[0] : ''
     })
 
-    needsDrain = needsDrain || !canContinue
+    if (!canContinue) {
+      await once(csvStream, 'drain')
+    }
   }
-
-  if (needsDrain) {
-    await once(csvStream, 'drain')
-  }
-}
-
-const streamBatchesToCsv = async (csvStream, lastRetentionDataId = 0) => {
-  const rows = await getRetentionDataBatch(lastRetentionDataId)
-
-  if (rows.length === 0) {
-    return
-  }
-
-  await writeRowsToCsv(csvStream, rows)
-
-  await streamBatchesToCsv(csvStream, rows[rows.length - 1].retentionDataId)
 }
 
 const streamRetentionDataToCsv = async (csvStream) => {
-  await streamBatchesToCsv(csvStream)
+  let lastRetentionDataId = 0
+
+  while (true) {
+    const rows = await getRetentionDataBatch(lastRetentionDataId)
+
+    if (rows.length === 0) {
+      break
+    }
+
+    await writeRowsToCsv(csvStream, rows)
+
+    lastRetentionDataId = rows[rows.length - 1].retentionDataId
+  }
+
   csvStream.end()
 }
 
