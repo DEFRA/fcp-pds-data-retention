@@ -116,9 +116,42 @@ describe('mapRetentionData', () => {
     const result = mapRetentionData(retentionData)
 
     expect(result.unsuccessful).toHaveLength(1)
-    expect(result.unsuccessful[0]).toEqual(
-      { frn: 789012, scheme: schemeNames.BPS, agreementNumber: 'AG102', endDate: null }
-    )
+    expect(result.unsuccessful[0]).toMatchObject({
+      frn: 789012,
+      scheme: schemeNames.BPS,
+      agreementNumber: 'AG102',
+      endDate: null,
+      validationError: { reason: 'invalid-date', minimumDate: '2015-01-01' }
+    })
+  })
+
+  test('should reject an end date before the scheme minimum and include validation details', () => {
+    const retentionData = [
+      { frn: 789012, scheme: schemeNames.BPS, agreementNumber: 'AG102', endDate: '2014-12-31' }
+    ]
+
+    const result = mapRetentionData(retentionData)
+
+    expect(result.successful).toHaveLength(0)
+    expect(result.unsuccessful).toEqual([{
+      ...retentionData[0],
+      validationError: {
+        reason: 'before-minimum-date',
+        date: '2014-12-31',
+        minimumDate: '2015-01-01'
+      }
+    }])
+  })
+
+  test('should reject an impossible year-first date', () => {
+    const retentionData = [
+      { frn: 789012, scheme: schemeNames.BPS, agreementNumber: 'AG102', endDate: '2024/31/02' }
+    ]
+
+    const result = mapRetentionData(retentionData)
+
+    expect(result.successful).toHaveLength(0)
+    expect(result.unsuccessful[0].validationError.reason).toBe('invalid-date')
   })
 
   test('should handle multiple successful items', () => {
