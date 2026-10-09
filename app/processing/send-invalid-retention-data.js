@@ -16,10 +16,22 @@ const createEvent = (retentionData) => {
     source: SOURCE,
     type: RETENTION_DATA_REJECTED,
     data: {
-      message: 'Scheme was not recognised for the supplied retention data',
+      message: getRejectionMessage(retentionData.validationError),
       ...retentionData
     }
   }
+}
+
+const getRejectionMessage = (validationError) => {
+  if (validationError?.reason === 'before-minimum-date') {
+    return `End date ${validationError.date} is earlier than the minimum date ${validationError.minimumDate}`
+  }
+
+  if (validationError?.reason === 'invalid-date') {
+    return 'End date is invalid'
+  }
+
+  return 'Scheme was not recognised for the supplied retention data'
 }
 
 module.exports = {

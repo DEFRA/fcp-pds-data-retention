@@ -1,24 +1,37 @@
 const csv = require('csv-parser')
+const { normaliseValidationDate } = require('../helpers/normaliseValidationDates')
 
-const parseDateString = (dateStr) => {
-  if (!dateStr) {
+const DATE_TIME_PATTERN = /^(?<month>\d{2})\/(?<day>\d{2})\/(?<year>\d{4}) (?<time>\d{2}:\d{2}:\d{2})$/
+const ISO_TIME_SUFFIX = '.000Z'
+const UTC_SUFFIX = 'Z'
+const MIDNIGHT_TIME = '00:00:00'
+
+const parseDateString = (dateString) => {
+  if (typeof dateString !== 'string' || !dateString.trim()) {
     return null
   }
 
-  const [datePart, timePart] = dateStr.split(' ')
-  if (!datePart || !timePart) {
+  const trimmedDate = dateString.trim()
+  const dateTimeMatch = trimmedDate.match(DATE_TIME_PATTERN)
+  if (dateTimeMatch) {
+    const { year, month, day, time } = dateTimeMatch.groups
+    const normalisedDate = normaliseValidationDate(`${year}/${day}/${month}`)
+    return normalisedDate ? createUtcDate(normalisedDate, time) : null
+  }
+
+  const normalisedDate = normaliseValidationDate(trimmedDate)
+  return normalisedDate ? createUtcDate(normalisedDate, MIDNIGHT_TIME) : null
+}
+
+const createUtcDate = (normalisedDate, time) => {
+  const isoDateTime = `${normalisedDate}T${time}${UTC_SUFFIX}`
+  const expectedIsoDateTime = `${normalisedDate}T${time}${ISO_TIME_SUFFIX}`
+  const date = new Date(isoDateTime)
+  if (Number.isNaN(date.getTime()) || date.toISOString() !== expectedIsoDateTime) {
     return null
   }
 
-  const [month, day, year] = datePart.split('/')
-  if (!month || !day || !year) {
-    return null
-  }
-
-  const isoString = `${year.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`
-
-  const date = new Date(isoString)
-  return Number.isNaN(date.getTime()) ? null : date
+  return date
 }
 
 const getRetentionDataFromFile = (fileStream, onRow) => {
