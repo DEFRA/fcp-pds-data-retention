@@ -72,7 +72,7 @@ const getDateParts = (value) => {
     return null
   }
 
-  const { year, month, day } = trimmedValue.match(matchingPattern).groups
+  const { year, month, day } = matchingPattern.exec(trimmedValue).groups
   return { year: Number(year), month: Number(month), day: Number(day) }
 }
 

@@ -12,11 +12,11 @@ const parseDateString = (dateString) => {
   }
 
   const trimmedDate = dateString.trim()
-  const dateTimeMatch = trimmedDate.match(DATE_TIME_PATTERN)
+  const dateTimeMatch = DATE_TIME_PATTERN.exec(trimmedDate)
   if (dateTimeMatch) {
     const { year, month, day, time } = dateTimeMatch.groups
-    const normalisedDate = normaliseValidationDate(`${year}/${day}/${month}`)
-    return normalisedDate ? createUtcDate(normalisedDate, time) : null
+    const normalisedTimestampDate = normaliseValidationDate(`${year}/${day}/${month}`)
+    return normalisedTimestampDate ? createUtcDate(normalisedTimestampDate, time) : null
   }
 
   const normalisedDate = normaliseValidationDate(trimmedDate)
@@ -66,13 +66,17 @@ const getRetentionDataFromFile = (fileStream, onRow) => {
       } finally {
         processing = false
       }
-      setImmediate(processNext)
+      setImmediate(runProcessNext)
+    }
+
+    const runProcessNext = () => {
+      processNext().catch(reject)
     }
 
     parser.on('data', (row) => {
       queue.push(row)
       parser.pause()
-      processNext()
+      runProcessNext()
     })
 
     parser.on('end', () => {
