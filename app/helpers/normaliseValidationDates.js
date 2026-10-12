@@ -6,8 +6,8 @@ const MONTH_DIGITS = 2
 const DAY_DIGITS = 2
 const MONTH_INDEX_OFFSET = 1
 const MINIMUM_SUPPORTED_YEAR = 1
-const EPOCH_TIMESTAMP = 0
 const DATE_SEPARATOR = '-'
+const UTC_MIDNIGHT_SUFFIX = 'T00:00:00.000Z'
 
 const ISO_DATE_PATTERN = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})$/
 const DAY_FIRST_DATE_PATTERN = /^(?<day>\d{2})\/(?<month>\d{2})\/(?<year>\d{4})$/
@@ -25,11 +25,7 @@ const normaliseValidationDate = (value) => {
     return null
   }
 
-  return [
-    String(year).padStart(YEAR_DIGITS, '0'),
-    String(month).padStart(MONTH_DIGITS, '0'),
-    String(day).padStart(DAY_DIGITS, '0')
-  ].join(DATE_SEPARATOR)
+  return formatDate(year, month, day)
 }
 
 const validatedDate = (scheme, value) => {
@@ -87,14 +83,18 @@ const isValidCalendarDate = (year, month, day) => {
     return false
   }
 
-  const date = new Date(EPOCH_TIMESTAMP)
-  date.setUTCHours(EPOCH_TIMESTAMP, EPOCH_TIMESTAMP, EPOCH_TIMESTAMP, EPOCH_TIMESTAMP)
-  date.setUTCFullYear(year, month - MONTH_INDEX_OFFSET, day)
+  const date = new Date(`${formatDate(year, month, day)}${UTC_MIDNIGHT_SUFFIX}`)
 
   return date.getUTCFullYear() === year &&
     date.getUTCMonth() + MONTH_INDEX_OFFSET === month &&
     date.getUTCDate() === day
 }
+
+const formatDate = (year, month, day) => [
+  String(year).padStart(YEAR_DIGITS, '0'),
+  String(month).padStart(MONTH_DIGITS, '0'),
+  String(day).padStart(DAY_DIGITS, '0')
+].join(DATE_SEPARATOR)
 
 module.exports = {
   normaliseValidationDate,
