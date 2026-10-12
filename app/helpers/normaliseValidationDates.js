@@ -1,4 +1,5 @@
 const validationDates = require('../constants/validation-dates')
+const schemes = require('../constants/schemes')
 
 const YEAR_DIGITS = 4
 const MONTH_DIGITS = 2
@@ -49,6 +50,11 @@ const validatedDate = (scheme, value) => {
   return { isValid: true, reason: null, date, minimumDate }
 }
 
+const validatedDateForSchemeId = (schemeId, value) => {
+  const schemeKey = Object.keys(validationDates).find(key => schemes[key] === schemeId)
+  return validatedDate(schemeKey, value)
+}
+
 const getDateParts = (value) => {
   if (value instanceof Date) {
     if (Number.isNaN(value.getTime())) {
@@ -92,5 +98,6 @@ const isValidCalendarDate = (year, month, day) => {
 
 module.exports = {
   normaliseValidationDate,
-  validatedDate
+  validatedDate,
+  validatedDateForSchemeId
 }

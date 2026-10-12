@@ -1,8 +1,7 @@
 const schemeNames = require('../constants/scheme-names')
 const schemeIds = require('../constants/schemes')
 const { validatedDate } = require('../helpers/normaliseValidationDates')
-
-const FRN_PATTERN = /^\d{10}$/
+const { isValidFrn } = require('../helpers/is-valid-frn')
 
 const mapRetentionData = (retentionData) => {
   const mappedData = { successful: [], unsuccessful: [] }
@@ -38,7 +37,7 @@ const getValidSchemeKeys = (scheme) => {
 }
 
 const getValidationError = (data, schemeKeys) => {
-  if (typeof data.frn !== 'string' || !FRN_PATTERN.test(data.frn)) {
+  if (typeof data.frn !== 'string' || !isValidFrn(data.frn)) {
     return { reason: 'invalid-frn' }
   }
 
