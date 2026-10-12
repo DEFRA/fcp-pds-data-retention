@@ -23,6 +23,10 @@ const createEvent = (retentionData) => {
 }
 
 const getRejectionMessage = (validationError) => {
+  if (validationError?.reason === 'invalid-frn') {
+    return 'FRN must be provided as exactly 10 digits'
+  }
+
   if (validationError?.reason === 'before-minimum-date') {
     return `End date ${validationError.date} is earlier than the minimum date ${validationError.minimumDate}`
   }

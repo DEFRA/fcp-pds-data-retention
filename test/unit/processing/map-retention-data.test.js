@@ -5,7 +5,7 @@ const schemeIds = require('../../../app/constants/schemes')
 describe('mapRetentionData', () => {
   test('should return object with successful and unsuccessful arrays', () => {
     const retentionData = [
-      { frn: 123456, scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
+      { frn: '0000123456', scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
@@ -17,7 +17,7 @@ describe('mapRetentionData', () => {
 
   test('should map recognized scheme to schemeId', () => {
     const retentionData = [
-      { frn: 123456, scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
+      { frn: '0000123456', scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
@@ -28,7 +28,7 @@ describe('mapRetentionData', () => {
 
   test('should handle multiple schemeKeys matching the same scheme name', () => {
     const retentionData = [
-      { frn: 789012, scheme: 'CS HT', agreementNumber: 'AG002', endDate: '2026-12-31' }
+      { frn: '0000789012', scheme: 'CS HT', agreementNumber: 'AG002', endDate: '2026-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
@@ -45,7 +45,7 @@ describe('mapRetentionData', () => {
 
   test('should remove scheme property from successful data', () => {
     const retentionData = [
-      { frn: 123456, scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
+      { frn: '0000123456', scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
@@ -57,13 +57,13 @@ describe('mapRetentionData', () => {
 
   test('should preserve all other properties in successful data', () => {
     const retentionData = [
-      { frn: 123456, scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
+      { frn: '0000123456', scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
 
     for (const item of result.successful) {
-      expect(item).toHaveProperty('frn', 123456)
+      expect(item).toHaveProperty('frn', '0000123456')
       expect(item).toHaveProperty('agreementNumber', 'AG001')
       expect(item).toHaveProperty('endDate', '2025-12-31')
     }
@@ -71,14 +71,14 @@ describe('mapRetentionData', () => {
 
   test('should classify unrecognized scheme as unsuccessful', () => {
     const retentionData = [
-      { frn: 789012, scheme: 'UNKNOWN', agreementNumber: 'AG002', endDate: '2026-12-31' }
+      { frn: '0000789012', scheme: 'UNKNOWN', agreementNumber: 'AG002', endDate: '2026-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
 
     expect(result.unsuccessful).toHaveLength(1)
     expect(result.unsuccessful[0]).toEqual(
-      { frn: 789012, scheme: 'UNKNOWN', agreementNumber: 'AG002', endDate: '2026-12-31' }
+      { frn: '0000789012', scheme: 'UNKNOWN', agreementNumber: 'AG002', endDate: '2026-12-31' }
     )
   })
 
@@ -90,34 +90,49 @@ describe('mapRetentionData', () => {
     const result = mapRetentionData(retentionData)
 
     expect(result.unsuccessful).toHaveLength(1)
-    expect(result.unsuccessful[0]).toEqual(
-      { frn: null, scheme: schemeNames.BPS, agreementNumber: 'AG102', endDate: '2026-12-31' }
-    )
+    expect(result.unsuccessful[0]).toMatchObject({
+      frn: null,
+      scheme: schemeNames.BPS,
+      agreementNumber: 'AG102',
+      endDate: '2026-12-31',
+      validationError: { reason: 'invalid-frn' }
+    })
+  })
+
+  test.each([undefined, '123456789', '12345678901', '12345A7890', 1234567890, ''])('should reject invalid FRN %s', (frn) => {
+    const retentionData = [
+      { frn, scheme: schemeNames.BPS, agreementNumber: 'AG102', endDate: '2026-12-31' }
+    ]
+
+    const result = mapRetentionData(retentionData)
+
+    expect(result.successful).toHaveLength(0)
+    expect(result.unsuccessful[0].validationError).toEqual({ reason: 'invalid-frn' })
   })
 
   test('should classify empty agreement as unsuccessful', () => {
     const retentionData = [
-      { frn: 789012, scheme: schemeNames.BPS, agreementNumber: null, endDate: '2026-12-31' }
+      { frn: '0000789012', scheme: schemeNames.BPS, agreementNumber: null, endDate: '2026-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
 
     expect(result.unsuccessful).toHaveLength(1)
     expect(result.unsuccessful[0]).toEqual(
-      { frn: 789012, scheme: schemeNames.BPS, agreementNumber: null, endDate: '2026-12-31' }
+      { frn: '0000789012', scheme: schemeNames.BPS, agreementNumber: null, endDate: '2026-12-31' }
     )
   })
 
   test('should classify empty endDate as unsuccessful', () => {
     const retentionData = [
-      { frn: 789012, scheme: schemeNames.BPS, agreementNumber: 'AG102', endDate: null }
+      { frn: '0000789012', scheme: schemeNames.BPS, agreementNumber: 'AG102', endDate: null }
     ]
 
     const result = mapRetentionData(retentionData)
 
     expect(result.unsuccessful).toHaveLength(1)
     expect(result.unsuccessful[0]).toMatchObject({
-      frn: 789012,
+      frn: '0000789012',
       scheme: schemeNames.BPS,
       agreementNumber: 'AG102',
       endDate: null,
@@ -127,7 +142,7 @@ describe('mapRetentionData', () => {
 
   test('should reject an end date before the scheme minimum and include validation details', () => {
     const retentionData = [
-      { frn: 789012, scheme: schemeNames.BPS, agreementNumber: 'AG102', endDate: '2014-12-31' }
+      { frn: '0000789012', scheme: schemeNames.BPS, agreementNumber: 'AG102', endDate: '2014-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
@@ -145,7 +160,7 @@ describe('mapRetentionData', () => {
 
   test('should reject an impossible year-first date', () => {
     const retentionData = [
-      { frn: 789012, scheme: schemeNames.BPS, agreementNumber: 'AG102', endDate: '2024/31/02' }
+      { frn: '0000789012', scheme: schemeNames.BPS, agreementNumber: 'AG102', endDate: '2024/31/02' }
     ]
 
     const result = mapRetentionData(retentionData)
@@ -156,30 +171,30 @@ describe('mapRetentionData', () => {
 
   test('should handle multiple successful items', () => {
     const retentionData = [
-      { frn: 111111, scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' },
-      { frn: 222222, scheme: schemeNames.LUMP_SUMS, agreementNumber: 'AG002', endDate: '2026-12-31' }
+      { frn: '0000111111', scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' },
+      { frn: '0000222222', scheme: schemeNames.LUMP_SUMS, agreementNumber: 'AG002', endDate: '2026-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
 
-    expect(result.successful.filter(item => item.frn === 111111)).toHaveLength(1)
-    expect(result.successful.filter(item => item.frn === 222222)).toHaveLength(1)
+    expect(result.successful.filter(item => item.frn === '0000111111')).toHaveLength(1)
+    expect(result.successful.filter(item => item.frn === '0000222222')).toHaveLength(1)
 
-    expect(result.successful.find(item => item.frn === 111111).schemeId).toBe(schemeIds.BPS)
-    expect(result.successful.find(item => item.frn === 222222).schemeId).toBe(schemeIds.LUMP_SUMS)
+    expect(result.successful.find(item => item.frn === '0000111111').schemeId).toBe(schemeIds.BPS)
+    expect(result.successful.find(item => item.frn === '0000222222').schemeId).toBe(schemeIds.LUMP_SUMS)
   })
 
   test('should handle mixed successful and unsuccessful data', () => {
     const retentionData = [
-      { frn: 111111, scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' },
-      { frn: 222222, scheme: 'INVALID', agreementNumber: 'AG002', endDate: '2025-12-31' },
-      { frn: 333333, scheme: schemeNames.BPS, agreementNumber: 'AG003', endDate: '2025-12-31' }
+      { frn: '0000111111', scheme: schemeNames.BPS, agreementNumber: 'AG001', endDate: '2025-12-31' },
+      { frn: '0000222222', scheme: 'INVALID', agreementNumber: 'AG002', endDate: '2025-12-31' },
+      { frn: '0000333333', scheme: schemeNames.BPS, agreementNumber: 'AG003', endDate: '2025-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
 
-    expect(result.successful.filter(item => item.frn === 111111)).toHaveLength(1)
-    expect(result.successful.filter(item => item.frn === 333333)).toHaveLength(1)
+    expect(result.successful.filter(item => item.frn === '0000111111')).toHaveLength(1)
+    expect(result.successful.filter(item => item.frn === '0000333333')).toHaveLength(1)
     expect(result.unsuccessful).toHaveLength(1)
   })
 
@@ -194,8 +209,8 @@ describe('mapRetentionData', () => {
 
   test('should handle all unsuccessful data', () => {
     const retentionData = [
-      { frn: 111111, scheme: 'INVALID1', agreementNumber: 'AG001', endDate: '2025-12-31' },
-      { frn: 222222, scheme: 'INVALID2', agreementNumber: 'AG002', endDate: '2025-12-31' }
+      { frn: '0000111111', scheme: 'INVALID1', agreementNumber: 'AG001', endDate: '2025-12-31' },
+      { frn: '0000222222', scheme: 'INVALID2', agreementNumber: 'AG002', endDate: '2025-12-31' }
     ]
 
     const result = mapRetentionData(retentionData)
