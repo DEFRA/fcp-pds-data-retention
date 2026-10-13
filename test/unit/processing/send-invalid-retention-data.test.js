@@ -38,14 +38,32 @@ describe('sendInvalidRetentionData', () => {
   test('should create events and publish them when invalidRetentionData is provided', async () => {
     const invalidData = [
       { frn: 123, scheme: 'UNKNOWN', errorCode: 'E001' },
-      { frn: 456, scheme: 'INVALID', errorCode: 'E002' }
+      { frn: 456, scheme: 'INVALID', errorCode: 'E002' },
+      {
+        frn: 789,
+        scheme: 'BPS',
+        validationError: {
+          reason: 'before-minimum-date',
+          date: '2014-12-31',
+          minimumDate: '2015-01-01'
+        }
+      },
+      {
+        frn: '1234',
+        scheme: 'BPS',
+        validationError: { reason: 'invalid-frn' }
+      }
     ]
 
     const expectedEvents = invalidData.map(data => ({
       source: SOURCE,
       type: RETENTION_DATA_REJECTED,
       data: {
-        message: 'Scheme was not recognised for the supplied retention data',
+        message: data.validationError?.reason === 'before-minimum-date'
+          ? 'End date 2014-12-31 is earlier than the minimum date 2015-01-01'
+          : data.validationError?.reason === 'invalid-frn'
+            ? 'FRN must be provided as exactly 10 digits'
+            : 'Scheme was not recognised for the supplied retention data',
         ...data
       }
     }))

@@ -95,6 +95,30 @@ describe('getRetentionDataFromFile', () => {
     expect(processedRows[1].endDate.toISOString()).toBe('2026-06-30T00:00:00.000Z')
   })
 
+  test.each([
+    ['31/12/2024', '2024-12-31T00:00:00.000Z'],
+    ['2024/31/12', '2024-12-31T00:00:00.000Z'],
+    ['12/31/2024 23:59:59', '2024-12-31T23:59:59.000Z']
+  ])('normalises supported date format %s', async (dateString, expectedDate) => {
+    let dataHandler
+    let endHandler
+
+    mockCsvParser.on.mockImplementation((event, handler) => {
+      if (event === 'data') dataHandler = handler
+      if (event === 'end') endHandler = handler
+      return mockCsvParser
+    })
+
+    const onRow = jest.fn()
+    const promise = getRetentionDataFromFile(mockFileStream, onRow)
+
+    await dataHandler({ FRN: '123456', SCHEME: 'BPS', APP_REF: 'AG001', APP_END_DATE: dateString })
+    endHandler()
+    await promise
+
+    expect(onRow.mock.calls[0][0].endDate.toISOString()).toBe(expectedDate)
+  })
+
   test('should handle invalid or missing APP_END_DATE with null endDate', async () => {
     let dataHandler
     let endHandler
@@ -119,7 +143,7 @@ describe('getRetentionDataFromFile', () => {
     await dataHandler({ FRN: '111', SCHEME: 'SFP', APP_REF: 'REF123', APP_END_DATE: null })
     await dataHandler({ FRN: '222', SCHEME: 'SFP', APP_REF: 'REF124', APP_END_DATE: '' })
     await dataHandler({ FRN: '333', SCHEME: 'SFP', APP_REF: 'REF125', APP_END_DATE: '01/15/2024' }) // missing time
-    await dataHandler({ FRN: '444', SCHEME: 'SFP', APP_REF: 'REF126', APP_END_DATE: '15/01/2024 12:00:00' }) // wrong format (day/month instead of month/day)
+    await dataHandler({ FRN: '444', SCHEME: 'SFP', APP_REF: 'REF126', APP_END_DATE: '31/02/2024' }) // impossible date
     await dataHandler({ FRN: '555', SCHEME: 'SFP', APP_REF: 'REF127', APP_END_DATE: 'not a date' })
 
     endHandler()
@@ -130,6 +154,26 @@ describe('getRetentionDataFromFile', () => {
     processedRows.forEach(({ endDate }) => {
       expect(endDate).toBeNull()
     })
+  })
+
+  test('should reject an invalid time in the existing timestamp format', async () => {
+    let dataHandler
+    let endHandler
+
+    mockCsvParser.on.mockImplementation((event, handler) => {
+      if (event === 'data') dataHandler = handler
+      if (event === 'end') endHandler = handler
+      return mockCsvParser
+    })
+
+    const onRow = jest.fn()
+    const promise = getRetentionDataFromFile(mockFileStream, onRow)
+
+    await dataHandler({ FRN: '123456', SCHEME: 'BPS', APP_REF: 'AG001', APP_END_DATE: '12/31/2024 25:00:00' })
+    endHandler()
+    await promise
+
+    expect(onRow.mock.calls[0][0].endDate).toBeNull()
   })
 
   test('should reject promise on error event', async () => {
