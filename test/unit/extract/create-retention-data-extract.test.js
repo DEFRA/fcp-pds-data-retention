@@ -1,4 +1,7 @@
 const { PassThrough } = require('node:stream')
+const { createKnexMock, createQueryBuilder } = require('../../helpers/mock-knex')
+
+const mockDb = createKnexMock(['retentionData'])
 
 const csvStream = new PassThrough({
   objectMode: true
@@ -14,30 +17,32 @@ jest.mock('csv-stringify', () => ({
   stringify: mockStringify
 }))
 
-jest.mock('../../../app/data', () => ({
-  retentionData: {
-    findAll: jest.fn()
-  },
-  scheme: {},
-  Sequelize: {
-    col: jest.fn(value => value),
-    Op: {
-      gt: Symbol('gt')
-    }
-  }
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
 }))
 
 jest.mock('../../../app/storage', () => ({
   uploadStreamToBlob: jest.fn()
 }))
 
-const db = require('../../../app/data')
 const { uploadStreamToBlob } = require('../../../app/storage')
 const { createRetentionDataExtract } = require('../../../app/extract/create-retention-data-extract')
+
+const mockBatches = (...batches) => {
+  return batches.map(rows => {
+    const batchBuilder = createQueryBuilder().resolves(rows)
+    mockDb.tables.retentionData.mockReturnValueOnce(batchBuilder)
+    return batchBuilder
+  })
+}
 
 describe('createRetentionDataExtract', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockDb.builder.resolves([])
 
     csvStream.write.mockReturnValue(true)
 
@@ -52,19 +57,17 @@ describe('createRetentionDataExtract', () => {
   })
 
   test('should upload a generated csv file', async () => {
-    db.retentionData.findAll
-      .mockResolvedValueOnce([
-        {
-          retentionDataId: 1,
-          frn: '123456',
-          agreementNumber: 'AGR001',
-          schemeName: 'SFI',
-          endDate: new Date('2026-01-01T00:00:00.000Z'),
-          addedBy: 'user1',
-          addedTime: new Date('2026-01-01T10:00:00.000Z')
-        }
-      ])
-      .mockResolvedValueOnce([])
+    mockBatches([
+      {
+        retentionDataId: 1,
+        frn: '123456',
+        agreementNumber: 'AGR001',
+        schemeName: 'SFI',
+        endDate: new Date('2026-01-01T00:00:00.000Z'),
+        addedBy: 'user1',
+        addedTime: new Date('2026-01-01T10:00:00.000Z')
+      }
+    ], [])
 
     uploadStreamToBlob.mockResolvedValue()
 
@@ -82,8 +85,6 @@ describe('createRetentionDataExtract', () => {
   })
 
   test('should pipe the csv stream to the upload stream', async () => {
-    db.retentionData.findAll.mockResolvedValueOnce([])
-
     uploadStreamToBlob.mockResolvedValue()
 
     await createRetentionDataExtract()
@@ -92,28 +93,26 @@ describe('createRetentionDataExtract', () => {
   })
 
   test('should write all rows returned from the database', async () => {
-    db.retentionData.findAll
-      .mockResolvedValueOnce([
-        {
-          retentionDataId: 1,
-          frn: '123',
-          agreementNumber: 'AGR1',
-          schemeName: 'Scheme A',
-          endDate: new Date('2026-01-01T00:00:00.000Z'),
-          addedBy: 'user1',
-          addedTime: new Date('2026-01-01T10:00:00.000Z')
-        },
-        {
-          retentionDataId: 2,
-          frn: '456',
-          agreementNumber: 'AGR2',
-          schemeName: 'Scheme B',
-          endDate: new Date('2026-01-02T00:00:00.000Z'),
-          addedBy: 'user2',
-          addedTime: new Date('2026-01-02T11:00:00.000Z')
-        }
-      ])
-      .mockResolvedValueOnce([])
+    mockBatches([
+      {
+        retentionDataId: 1,
+        frn: '123',
+        agreementNumber: 'AGR1',
+        schemeName: 'Scheme A',
+        endDate: new Date('2026-01-01T00:00:00.000Z'),
+        addedBy: 'user1',
+        addedTime: new Date('2026-01-01T10:00:00.000Z')
+      },
+      {
+        retentionDataId: 2,
+        frn: '456',
+        agreementNumber: 'AGR2',
+        schemeName: 'Scheme B',
+        endDate: new Date('2026-01-02T00:00:00.000Z'),
+        addedBy: 'user2',
+        addedTime: new Date('2026-01-02T11:00:00.000Z')
+      }
+    ], [])
 
     uploadStreamToBlob.mockResolvedValue()
 
@@ -141,19 +140,17 @@ describe('createRetentionDataExtract', () => {
   })
 
   test('should write empty strings for missing dates', async () => {
-    db.retentionData.findAll
-      .mockResolvedValueOnce([
-        {
-          retentionDataId: 1,
-          frn: '123',
-          agreementNumber: 'AGR1',
-          schemeName: 'Scheme A',
-          endDate: null,
-          addedBy: 'user1',
-          addedTime: null
-        }
-      ])
-      .mockResolvedValueOnce([])
+    mockBatches([
+      {
+        retentionDataId: 1,
+        frn: '123',
+        agreementNumber: 'AGR1',
+        schemeName: 'Scheme A',
+        endDate: null,
+        addedBy: 'user1',
+        addedTime: null
+      }
+    ], [])
 
     uploadStreamToBlob.mockResolvedValue()
 
@@ -170,88 +167,48 @@ describe('createRetentionDataExtract', () => {
   })
 
   test('should continue fetching until an empty batch is returned', async () => {
-    db.retentionData.findAll
-      .mockResolvedValueOnce([
-        {
-          retentionDataId: 1
-        }
-      ])
-      .mockResolvedValueOnce([
-        {
-          retentionDataId: 2
-        }
-      ])
-      .mockResolvedValueOnce([])
+    mockBatches([{ retentionDataId: 1 }], [{ retentionDataId: 2 }], [])
 
     uploadStreamToBlob.mockResolvedValue()
 
     await createRetentionDataExtract()
 
-    expect(db.retentionData.findAll).toHaveBeenCalledTimes(3)
+    expect(mockDb.tables.retentionData).toHaveBeenCalledTimes(3)
   })
 
   test('should use the last retentionDataId when requesting subsequent batches', async () => {
-    db.retentionData.findAll
-      .mockResolvedValueOnce([
-        {
-          retentionDataId: 100
-        }
-      ])
-      .mockResolvedValueOnce([])
+    const [firstBatch, secondBatch] = mockBatches([{ retentionDataId: 100 }], [])
 
     uploadStreamToBlob.mockResolvedValue()
 
     await createRetentionDataExtract()
 
-    expect(db.retentionData.findAll).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        where: {
-          retentionDataId: {
-            [db.Sequelize.Op.gt]: 100
-          }
-        }
-      })
-    )
+    expect(firstBatch.where).toHaveBeenCalledWith('retentionData.retentionDataId', '>', 0)
+    expect(secondBatch.where).toHaveBeenCalledWith('retentionData.retentionDataId', '>', 100)
   })
 
-  test('should query retention data using the expected options', async () => {
-    db.retentionData.findAll.mockResolvedValueOnce([])
-
+  test('should query retention data using the expected clauses', async () => {
     uploadStreamToBlob.mockResolvedValue()
 
     await createRetentionDataExtract()
 
-    expect(db.retentionData.findAll).toHaveBeenCalledWith({
-      include: [{
-        model: db.scheme,
-        as: 'scheme',
-        attributes: []
-      }],
-      attributes: [
-        'retentionDataId',
-        'frn',
-        [db.Sequelize.col('scheme.name'), 'schemeName'],
-        'agreementNumber',
-        'endDate',
-        'addedBy',
-        'addedTime'
-      ],
-      where: {
-        retentionDataId: {
-          [db.Sequelize.Op.gt]: 0
-        }
-      },
-      order: [['retentionDataId', 'ASC']],
-      limit: 5000,
-      raw: true,
-      subQuery: false
-    })
+    expect(mockDb.tables.retentionData).toHaveBeenCalledWith()
+    expect(mockDb.builder.select).toHaveBeenCalledWith(
+      'retentionData.retentionDataId',
+      'retentionData.frn',
+      { schemeName: 'scheme.name' },
+      'retentionData.agreementNumber',
+      'retentionData.endDate',
+      'retentionData.addedBy',
+      'retentionData.addedTime'
+    )
+    expect(mockDb.builder.leftJoin).toHaveBeenCalledWith({ scheme: 'schemes' }, 'retentionData.schemeId', 'scheme.schemeId')
+    expect(mockDb.builder.where).toHaveBeenCalledWith('retentionData.retentionDataId', '>', 0)
+    expect(mockDb.builder.orderBy).toHaveBeenCalledWith('retentionData.retentionDataId', 'asc')
+    expect(mockDb.builder.limit).toHaveBeenCalledWith(5000)
   })
 
   test('should end the csv stream when processing is complete', async () => {
-    db.retentionData.findAll.mockResolvedValueOnce([])
-
     uploadStreamToBlob.mockResolvedValue()
 
     await createRetentionDataExtract()
@@ -260,8 +217,6 @@ describe('createRetentionDataExtract', () => {
   })
 
   test('should create csv stringify with expected columns', async () => {
-    db.retentionData.findAll.mockResolvedValueOnce([])
-
     uploadStreamToBlob.mockResolvedValue()
 
     await createRetentionDataExtract()
@@ -280,8 +235,6 @@ describe('createRetentionDataExtract', () => {
   })
 
   test('should propagate upload errors', async () => {
-    db.retentionData.findAll.mockResolvedValueOnce([])
-
     uploadStreamToBlob.mockRejectedValue(
       new Error('Upload failed')
     )
@@ -292,9 +245,7 @@ describe('createRetentionDataExtract', () => {
   })
 
   test('should propagate database errors', async () => {
-    db.retentionData.findAll.mockRejectedValue(
-      new Error('Database failed')
-    )
+    mockDb.builder.rejects(new Error('Database failed'))
 
     uploadStreamToBlob.mockResolvedValue()
 
