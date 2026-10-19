@@ -2,7 +2,6 @@ jest.mock('../../../app/publishing/get-pending-retention-data')
 jest.mock('../../../app/messaging/send-publish-message')
 jest.mock('../../../app/data')
 jest.mock('../../../app/publishing/get-mapped-agreement-number')
-
 const { getPendingRetentionData } = require('../../../app/publishing/get-pending-retention-data')
 const sendPublishMessage = require('../../../app/messaging/send-publish-message')
 const db = require('../../../app/data')
@@ -280,6 +279,23 @@ describe('publishRetentionData', () => {
 
     await publishRetentionData()
 
+    expect(db.retentionData.destroy).toHaveBeenCalledWith({
+      where: { retentionDataId: [1] }
+    })
+  })
+
+  test('should process Siti Agri data returned when publishing is enabled', async () => {
+    const mockData = [
+      { retentionDataId: 1, frn: 'FRN001', agreementNumber: 'AGR001', schemeId: SFI_PILOT }
+    ]
+    getPendingRetentionData.mockResolvedValue(mockData)
+
+    await publishRetentionData()
+
+    expect(sendPublishMessage).toHaveBeenCalledWith(expect.objectContaining({
+      retentionDataId: 1,
+      schemeId: SFI_PILOT
+    }))
     expect(db.retentionData.destroy).toHaveBeenCalledWith({
       where: { retentionDataId: [1] }
     })

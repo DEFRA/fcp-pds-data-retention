@@ -5,6 +5,7 @@ data:
   APPINSIGHTS_CLOUDROLE: {{ .Chart.Name | quote }}
   OTEL_SERVICE_NAME: {{ quote .Values.name }} 
   PROCESSING_ACTIVE: {{ quote .Values.container.processingActive }}
+  SEND_SITI_AGRI_RETENTION: {{ quote .Values.container.sendSitiAgriRetention }}
   POLLING_INTERVAL: {{ quote .Values.container.pollingInterval }}
   PUBLISHING_INTERVAL: {{ quote .Values.container.publishingInterval }}
   AZURE_STORAGE_CONNECTION_STRING: {{ quote .Values.container.azureStorageConnectionString }}
