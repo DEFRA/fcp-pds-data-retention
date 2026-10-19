@@ -7,7 +7,7 @@ const { uploadStreamToBlob } = require('../storage')
 
 const batchSize = 5000
 const msAccuracy = 3
-const retentionDataIdColumn = 'retentionData.retentionDataId'
+const retentionDataIdColumn = `${TABLES.retentionData}.retentionDataId`
 
 const pad = (value, length = 2) => {
   return String(value).padStart(length, '0')
@@ -35,14 +35,14 @@ const getRetentionDataBatch = async (lastRetentionDataId) => {
   return retentionData()
     .select(
       retentionDataIdColumn,
-      'retentionData.frn',
-      { schemeName: 'scheme.name' },
-      'retentionData.agreementNumber',
-      'retentionData.endDate',
-      'retentionData.addedBy',
-      'retentionData.addedTime'
+      `${TABLES.retentionData}.frn`,
+      { schemeName: `${TABLES.schemes}.name` },
+      `${TABLES.retentionData}.agreementNumber`,
+      `${TABLES.retentionData}.endDate`,
+      `${TABLES.retentionData}.addedBy`,
+      `${TABLES.retentionData}.addedTime`
     )
-    .leftJoin({ scheme: TABLES.schemes }, 'retentionData.schemeId', 'scheme.schemeId')
+    .leftJoin(TABLES.schemes, `${TABLES.retentionData}.schemeId`, `${TABLES.schemes}.schemeId`)
     .where(retentionDataIdColumn, '>', lastRetentionDataId)
     .orderBy(retentionDataIdColumn, 'asc')
     .limit(batchSize)

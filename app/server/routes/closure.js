@@ -10,25 +10,25 @@ const defaultPage = 1
 const minPageSize = 1
 const defaultPageSize = 2500
 
-const schemeIdColumn = 'retentionData.schemeId'
+const schemeIdColumn = `${TABLES.retentionData}.schemeId`
 
 const closureColumns = [
-  'retentionData.retentionDataId',
-  'retentionData.frn',
+  `${TABLES.retentionData}.retentionDataId`,
+  `${TABLES.retentionData}.frn`,
   schemeIdColumn,
-  'retentionData.agreementNumber',
-  'retentionData.endDate',
-  'retentionData.addedBy',
-  'retentionData.addedTime'
+  `${TABLES.retentionData}.agreementNumber`,
+  `${TABLES.retentionData}.endDate`,
+  `${TABLES.retentionData}.addedBy`,
+  `${TABLES.retentionData}.addedTime`
 ]
 
 const applyClosureFilters = (frnAgreement, schemeId) => (query) => {
   if (frnAgreement) {
     query.where(function () {
-      this.where('retentionData.agreementNumber', frnAgreement)
+      this.where(`${TABLES.retentionData}.agreementNumber`, frnAgreement)
 
       if (/^\d+$/.test(frnAgreement)) {
-        this.orWhere('retentionData.frn', Number(frnAgreement))
+        this.orWhere(`${TABLES.retentionData}.frn`, Number(frnAgreement))
       }
     })
   }
@@ -65,13 +65,12 @@ module.exports = [
         const [{ count }, closures] = await Promise.all([
           retentionData()
             .count({ count: '*' })
-            .modify(filters)
             .first(),
           retentionData()
-            .select(...closureColumns, { schemeName: 'scheme.name' })
-            .leftJoin({ scheme: TABLES.schemes }, schemeIdColumn, 'scheme.schemeId')
+            .select(...closureColumns, { schemeName: `${TABLES.schemes}.name` })
+            .leftJoin(TABLES.schemes, schemeIdColumn, `${TABLES.schemes}.schemeId`)
             .modify(filters)
-            .orderBy('retentionData.addedTime', 'desc')
+            .orderBy(`${TABLES.retentionData}.addedTime`, 'desc')
             .limit(pageSize)
             .offset((page - 1) * pageSize)
         ])

@@ -196,13 +196,13 @@ describe('createRetentionDataExtract', () => {
     expect(mockDb.builder.select).toHaveBeenCalledWith(
       'retentionData.retentionDataId',
       'retentionData.frn',
-      { schemeName: 'scheme.name' },
+      { schemeName: 'schemes.name' },
       'retentionData.agreementNumber',
       'retentionData.endDate',
       'retentionData.addedBy',
       'retentionData.addedTime'
     )
-    expect(mockDb.builder.leftJoin).toHaveBeenCalledWith({ scheme: 'schemes' }, 'retentionData.schemeId', 'scheme.schemeId')
+    expect(mockDb.builder.leftJoin).toHaveBeenCalledWith('schemes', 'retentionData.schemeId', 'schemes.schemeId')
     expect(mockDb.builder.where).toHaveBeenCalledWith('retentionData.retentionDataId', '>', 0)
     expect(mockDb.builder.orderBy).toHaveBeenCalledWith('retentionData.retentionDataId', 'asc')
     expect(mockDb.builder.limit).toHaveBeenCalledWith(5000)

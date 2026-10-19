@@ -97,9 +97,9 @@ describe('Closure API Routes', () => {
         'retentionData.endDate',
         'retentionData.addedBy',
         'retentionData.addedTime',
-        { schemeName: 'scheme.name' }
+        { schemeName: 'schemes.name' }
       )
-      expect(rowsBuilder.leftJoin).toHaveBeenCalledWith({ scheme: 'schemes' }, 'retentionData.schemeId', 'scheme.schemeId')
+      expect(rowsBuilder.leftJoin).toHaveBeenCalledWith('schemes', 'retentionData.schemeId', 'schemes.schemeId')
       expect(rowsBuilder.where).not.toHaveBeenCalled()
       expect(rowsBuilder.orderBy).toHaveBeenCalledWith('retentionData.addedTime', 'desc')
       expect(rowsBuilder.limit).toHaveBeenCalledWith(2500)
@@ -135,10 +135,9 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(200)
 
-      for (const builder of [countBuilder, rowsBuilder]) {
-        expect(builder.where).toHaveBeenCalledWith('retentionData.agreementNumber', '1234567890')
-        expect(builder.orWhere).toHaveBeenCalledWith('retentionData.frn', 1234567890)
-      }
+      expect(countBuilder.where).not.toHaveBeenCalled()
+      expect(rowsBuilder.where).toHaveBeenCalledWith('retentionData.agreementNumber', '1234567890')
+      expect(rowsBuilder.orWhere).toHaveBeenCalledWith('retentionData.frn', 1234567890)
     })
 
     test('should filter non-numeric frnAgreement by agreementNumber only', async () => {
@@ -149,10 +148,9 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(200)
 
-      for (const builder of [countBuilder, rowsBuilder]) {
-        expect(builder.where).toHaveBeenCalledWith('retentionData.agreementNumber', 'AG12345')
-        expect(builder.orWhere).not.toHaveBeenCalled()
-      }
+      expect(countBuilder.where).not.toHaveBeenCalled()
+      expect(rowsBuilder.where).toHaveBeenCalledWith('retentionData.agreementNumber', 'AG12345')
+      expect(rowsBuilder.orWhere).not.toHaveBeenCalled()
     })
 
     test('should filter by schemeId', async () => {
@@ -163,10 +161,9 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(200)
 
-      for (const builder of [countBuilder, rowsBuilder]) {
-        expect(builder.where).toHaveBeenCalledTimes(1)
-        expect(builder.where).toHaveBeenCalledWith('retentionData.schemeId', 1)
-      }
+      expect(countBuilder.where).not.toHaveBeenCalled()
+      expect(rowsBuilder.where).toHaveBeenCalledTimes(1)
+      expect(rowsBuilder.where).toHaveBeenCalledWith('retentionData.schemeId', 1)
     })
 
     test('should filter by frnAgreement and schemeId together', async () => {
@@ -177,12 +174,11 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(200)
 
-      for (const builder of [countBuilder, rowsBuilder]) {
-        expect(builder.where).toHaveBeenCalledWith(expect.any(Function))
-        expect(builder.where).toHaveBeenCalledWith('retentionData.agreementNumber', '1234567890')
-        expect(builder.orWhere).toHaveBeenCalledWith('retentionData.frn', 1234567890)
-        expect(builder.where).toHaveBeenCalledWith('retentionData.schemeId', 1)
-      }
+      expect(countBuilder.where).not.toHaveBeenCalled()
+      expect(rowsBuilder.where).toHaveBeenCalledWith(expect.any(Function))
+      expect(rowsBuilder.where).toHaveBeenCalledWith('retentionData.agreementNumber', '1234567890')
+      expect(rowsBuilder.orWhere).toHaveBeenCalledWith('retentionData.frn', 1234567890)
+      expect(rowsBuilder.where).toHaveBeenCalledWith('retentionData.schemeId', 1)
     })
 
     test('should return 500 when the database query fails', async () => {
