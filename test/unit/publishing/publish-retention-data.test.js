@@ -11,7 +11,6 @@ jest.mock('../../../app/database', () => ({
   ...mockDb.tables
 }))
 jest.mock('../../../app/publishing/get-mapped-agreement-number')
-
 const { getPendingRetentionData } = require('../../../app/publishing/get-pending-retention-data')
 const sendPublishMessage = require('../../../app/messaging/send-publish-message')
 const { getMappedAgreementNumber } = require('../../../app/publishing/get-mapped-agreement-number')
@@ -286,6 +285,22 @@ describe('publishRetentionData', () => {
     await publishRetentionData()
 
     expect(mockDb.builder.whereIn).toHaveBeenCalledTimes(1)
+    expect(mockDb.builder.whereIn).toHaveBeenCalledWith('retentionDataId', [1])
+    expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
+  })
+
+  test('should process Siti Agri data returned when publishing is enabled', async () => {
+    const mockData = [
+      { retentionDataId: 1, frn: 'FRN001', agreementNumber: 'AGR001', schemeId: SFI_PILOT }
+    ]
+    getPendingRetentionData.mockResolvedValue(mockData)
+
+    await publishRetentionData()
+
+    expect(sendPublishMessage).toHaveBeenCalledWith(expect.objectContaining({
+      retentionDataId: 1,
+      schemeId: SFI_PILOT
+    }))
     expect(mockDb.builder.whereIn).toHaveBeenCalledWith('retentionDataId', [1])
     expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
   })

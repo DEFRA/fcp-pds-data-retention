@@ -2,6 +2,7 @@ const chainableMethods = [
   'select',
   'where',
   'whereIn',
+  'whereNotIn',
   'whereNot',
   'whereNull',
   'whereNotNull',
