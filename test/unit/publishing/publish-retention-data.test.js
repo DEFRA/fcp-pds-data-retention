@@ -1,10 +1,18 @@
+const { createKnexMock } = require('../../helpers/mock-knex')
+
+const mockDb = createKnexMock(['retentionData'])
+
 jest.mock('../../../app/publishing/get-pending-retention-data')
 jest.mock('../../../app/messaging/send-publish-message')
-jest.mock('../../../app/data')
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
+}))
 jest.mock('../../../app/publishing/get-mapped-agreement-number')
 const { getPendingRetentionData } = require('../../../app/publishing/get-pending-retention-data')
 const sendPublishMessage = require('../../../app/messaging/send-publish-message')
-const db = require('../../../app/data')
 const { getMappedAgreementNumber } = require('../../../app/publishing/get-mapped-agreement-number')
 const { publishRetentionData } = require('../../../app/publishing/publish-retention-data')
 const { SFI_PILOT, CS, MANUAL, SFI23, WMP } = require('../../../app/constants/schemes')
@@ -13,9 +21,7 @@ const { SFI_PILOT: SFI_PILOT_PILLAR, CS: CS_PILLAR, SFI23: SFI23_PILLAR } = requ
 describe('publishRetentionData', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    db.retentionData = {
-      destroy: jest.fn().mockResolvedValue(1)
-    }
+    mockDb.builder.resolves(1)
     sendPublishMessage.mockResolvedValue(undefined)
     getMappedAgreementNumber.mockImplementation((schemeId, agreementNumber) => agreementNumber)
   })
@@ -38,7 +44,7 @@ describe('publishRetentionData', () => {
     await publishRetentionData()
 
     expect(sendPublishMessage).toHaveBeenCalledTimes(2)
-    expect(db.retentionData.destroy).toHaveBeenCalledTimes(1)
+    expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
   })
 
   test('should send publish message with correct pending data', async () => {
@@ -63,9 +69,9 @@ describe('publishRetentionData', () => {
 
     await publishRetentionData()
 
-    expect(db.retentionData.destroy).toHaveBeenCalledWith({
-      where: { retentionDataId: [123] }
-    })
+    expect(mockDb.tables.retentionData).toHaveBeenCalledWith()
+    expect(mockDb.builder.whereIn).toHaveBeenCalledWith('retentionDataId', [123])
+    expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
   })
 
   test('should log data passing retention with frn and agreement number', async () => {
@@ -102,7 +108,7 @@ describe('publishRetentionData', () => {
     await publishRetentionData()
 
     expect(sendPublishMessage).not.toHaveBeenCalled()
-    expect(db.retentionData.destroy).not.toHaveBeenCalled()
+    expect(mockDb.builder.del).not.toHaveBeenCalled()
   })
 
   test('should throw error when getPendingRetentionData fails', async () => {
@@ -128,8 +134,7 @@ describe('publishRetentionData', () => {
       { retentionDataId: 1, frn: 'FRN001', agreementNumber: 'AGR001' }
     ]
     getPendingRetentionData.mockResolvedValue(mockData)
-    const testError = new Error('Destroy failed')
-    db.retentionData.destroy.mockRejectedValue(testError)
+    mockDb.builder.rejects(new Error('Destroy failed'))
 
     await expect(publishRetentionData()).rejects.toThrow('Destroy failed')
   })
@@ -145,9 +150,9 @@ describe('publishRetentionData', () => {
       callOrder.push(`message-${data.retentionDataId}`)
       return Promise.resolve()
     })
-    db.retentionData.destroy.mockImplementation((query) => {
-      callOrder.push(`destroy-${query.where.retentionDataId}`)
-      return Promise.resolve()
+    mockDb.builder.whereIn.mockImplementationOnce((_column, ids) => {
+      callOrder.push(`destroy-${ids}`)
+      return mockDb.builder
     })
 
     await publishRetentionData()
@@ -279,9 +284,9 @@ describe('publishRetentionData', () => {
 
     await publishRetentionData()
 
-    expect(db.retentionData.destroy).toHaveBeenCalledWith({
-      where: { retentionDataId: [1] }
-    })
+    expect(mockDb.builder.whereIn).toHaveBeenCalledTimes(1)
+    expect(mockDb.builder.whereIn).toHaveBeenCalledWith('retentionDataId', [1])
+    expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
   })
 
   test('should process Siti Agri data returned when publishing is enabled', async () => {
@@ -296,8 +301,7 @@ describe('publishRetentionData', () => {
       retentionDataId: 1,
       schemeId: SFI_PILOT
     }))
-    expect(db.retentionData.destroy).toHaveBeenCalledWith({
-      where: { retentionDataId: [1] }
-    })
+    expect(mockDb.builder.whereIn).toHaveBeenCalledWith('retentionDataId', [1])
+    expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
   })
 })

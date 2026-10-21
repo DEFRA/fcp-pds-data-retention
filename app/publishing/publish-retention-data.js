@@ -1,6 +1,6 @@
 const { getPendingRetentionData } = require('./get-pending-retention-data')
 const sendPublishMessage = require('../messaging/send-publish-message')
-const db = require('../data')
+const { retentionData } = require('../database')
 const { getMappedAgreementNumber } = require('./get-mapped-agreement-number')
 const { getPillarFromSchemeId } = require('../helpers/get-pillar-from-scheme-id')
 const { SFI_PILOT, CS, MANUAL } = require('../constants/schemes')
@@ -27,11 +27,9 @@ const publishRetentionData = async () => {
 
   await Promise.all(messages.map(m => sendPublishMessage(m)))
 
-  await db.retentionData.destroy({
-    where: {
-      retentionDataId: pendingRetentionData.map(p => p.retentionDataId)
-    }
-  })
+  await retentionData()
+    .whereIn('retentionDataId', pendingRetentionData.map(p => p.retentionDataId))
+    .del()
 
   console.log('Notifications supplied to downstream systems')
 }
