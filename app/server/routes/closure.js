@@ -271,8 +271,12 @@ const getClosureValidationMessage = (frn, schemeId, endDate) => {
     return `End date ${dateValidation.date} is earlier than the minimum date ${dateValidation.minimumDate}`
   }
 
-  if (dateValidation.reason === 'unknown-scheme') {
+  if (dateValidation.reason === 'no-scheme-end-date') {
     return 'No minimum date is configured for the supplied scheme'
+  }
+
+  if (dateValidation.reason === 'unknown-scheme') {
+    return 'Scheme was not recognised for the supplied retention data'
   }
 
   return 'End date is invalid'

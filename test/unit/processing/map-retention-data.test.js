@@ -82,6 +82,21 @@ describe('mapRetentionData', () => {
     )
   })
 
+  test('should identify a known scheme without a date rule separately', () => {
+    const retentionData = [
+      { frn: '0000789012', scheme: schemeNames.FC, agreementNumber: 'AG003', endDate: '2026-01-01' }
+    ]
+
+    const result = mapRetentionData(retentionData)
+
+    expect(result.unsuccessful).toHaveLength(1)
+    expect(result.unsuccessful[0].validationError).toEqual({
+      reason: 'no-scheme-end-date',
+      date: null,
+      minimumDate: null
+    })
+  })
+
   test('should classify empty frn as unsuccessful', () => {
     const retentionData = [
       { frn: null, scheme: schemeNames.BPS, agreementNumber: 'AG102', endDate: '2026-12-31' }

@@ -35,6 +35,14 @@ const getRejectionMessage = (validationError) => {
     return 'End date is invalid'
   }
 
+  if (validationError?.reason === 'no-scheme-end-date') {
+    return 'No minimum date is configured for the supplied scheme'
+  }
+
+  if (validationError?.reason === 'unknown-scheme') {
+    return 'Scheme was not recognised for the supplied retention data'
+  }
+
   return 'Scheme was not recognised for the supplied retention data'
 }
 

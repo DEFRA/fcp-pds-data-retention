@@ -30,7 +30,8 @@ const normaliseValidationDate = (value) => {
 
 const validatedDate = (scheme, value) => {
   if (!Object.hasOwn(validationDates, scheme)) {
-    return { isValid: false, reason: 'unknown-scheme', date: null, minimumDate: null }
+    const reason = Object.hasOwn(schemes, scheme) ? 'no-scheme-end-date' : 'unknown-scheme'
+    return { isValid: false, reason, date: null, minimumDate: null }
   }
 
   const minimumDate = validationDates[scheme]
@@ -47,7 +48,7 @@ const validatedDate = (scheme, value) => {
 }
 
 const validatedDateForSchemeId = (schemeId, value) => {
-  const schemeKey = Object.keys(validationDates).find(key => schemes[key] === schemeId)
+  const schemeKey = Object.keys(schemes).find(key => schemes[key] === schemeId)
   return validatedDate(schemeKey, value)
 }
 

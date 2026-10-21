@@ -1,7 +1,10 @@
 const {
   normaliseValidationDate,
-  validatedDate
+  validatedDate,
+  validatedDateForSchemeId
 } = require('../../../app/helpers/normaliseValidationDates')
+const schemes = require('../../../app/constants/schemes')
+const validationDates = require('../../../app/constants/validation-dates')
 
 describe('normaliseValidationDate', () => {
   test.each([
@@ -29,6 +32,13 @@ describe('normaliseValidationDate', () => {
 })
 
 describe('validatedDate', () => {
+  test('only configures minimum dates for registered schemes', () => {
+    const unregisteredSchemes = Object.keys(validationDates)
+      .filter(scheme => !Object.hasOwn(schemes, scheme))
+
+    expect(unregisteredSchemes).toEqual([])
+  })
+
   test('accepts a date equal to the scheme minimum', () => {
     expect(validatedDate('BPS', '01/01/2015')).toEqual({
       isValid: true,
@@ -47,8 +57,35 @@ describe('validatedDate', () => {
     })
   })
 
-  test('rejects an unknown scheme', () => {
+  test('reports an unknown scheme separately from a scheme without a date rule', () => {
     expect(validatedDate('UNKNOWN', '2024-12-31')).toEqual({
+      isValid: false,
+      reason: 'unknown-scheme',
+      date: null,
+      minimumDate: null
+    })
+  })
+
+  test('reports when a known scheme has no configured minimum date', () => {
+    expect(validatedDate('FC', '2024-12-31')).toEqual({
+      isValid: false,
+      reason: 'no-scheme-end-date',
+      date: null,
+      minimumDate: null
+    })
+  })
+
+  test('recognises a known scheme ID without a configured minimum date', () => {
+    expect(validatedDateForSchemeId(schemes.FC, '2024-12-31')).toEqual({
+      isValid: false,
+      reason: 'no-scheme-end-date',
+      date: null,
+      minimumDate: null
+    })
+  })
+
+  test('reports an unknown scheme ID separately', () => {
+    expect(validatedDateForSchemeId(999, '2024-12-31')).toEqual({
       isValid: false,
       reason: 'unknown-scheme',
       date: null,

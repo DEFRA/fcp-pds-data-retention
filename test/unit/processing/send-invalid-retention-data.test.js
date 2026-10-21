@@ -52,6 +52,16 @@ describe('sendInvalidRetentionData', () => {
         frn: '1234',
         scheme: 'BPS',
         validationError: { reason: 'invalid-frn' }
+      },
+      {
+        frn: '0000789012',
+        scheme: 'FC',
+        validationError: { reason: 'no-scheme-end-date' }
+      },
+      {
+        frn: '0000789012',
+        scheme: 'UNKNOWN',
+        validationError: { reason: 'unknown-scheme' }
       }
     ]
 
@@ -63,7 +73,9 @@ describe('sendInvalidRetentionData', () => {
           ? 'End date 2014-12-31 is earlier than the minimum date 2015-01-01'
           : data.validationError?.reason === 'invalid-frn'
             ? 'FRN must be provided as exactly 10 digits'
-            : 'Scheme was not recognised for the supplied retention data',
+            : data.validationError?.reason === 'no-scheme-end-date'
+              ? 'No minimum date is configured for the supplied scheme'
+              : 'Scheme was not recognised for the supplied retention data',
         ...data
       }
     }))

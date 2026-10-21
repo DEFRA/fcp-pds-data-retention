@@ -1,6 +1,7 @@
 const Hapi = require('@hapi/hapi')
 const routes = require('../../../../app/server/routes/closure')
 const db = require('../../../../app/data')
+const schemeIds = require('../../../../app/constants/schemes')
 const { getSchemeIdFromSourceSystem } = require('../../../../app/helpers/get-scheme-id-from-source-system')
 const { createRetentionDataExtract } = require('../../../../app/extract/create-retention-data-extract')
 
@@ -285,7 +286,21 @@ describe('Closure API Routes', () => {
       expect(db.retentionData.create).not.toHaveBeenCalled()
     })
 
-    test('should reject a scheme without a configured minimum date', async () => {
+    test('should reject a known scheme without a configured minimum date', async () => {
+      db.retentionData = { create: jest.fn().mockResolvedValue() }
+
+      const res = await server.inject({
+        method: 'POST',
+        url: '/closure/add',
+        payload: { ...validPayload, schemeId: schemeIds.FC }
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toBe('No minimum date is configured for the supplied scheme')
+      expect(db.retentionData.create).not.toHaveBeenCalled()
+    })
+
+    test('should reject an unknown scheme ID with an unrecognized-scheme message', async () => {
       db.retentionData = { create: jest.fn().mockResolvedValue() }
 
       const res = await server.inject({
@@ -295,7 +310,7 @@ describe('Closure API Routes', () => {
       })
 
       expect(res.statusCode).toBe(400)
-      expect(res.result.message).toBe('No minimum date is configured for the supplied scheme')
+      expect(res.result.message).toBe('Scheme was not recognised for the supplied retention data')
       expect(db.retentionData.create).not.toHaveBeenCalled()
     })
 
