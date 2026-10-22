@@ -324,10 +324,10 @@ describe('Closure API Routes', () => {
 
       getSchemeIdFromSourceSystem.mockImplementation((sourceSystem) => {
         if (sourceSystem === 'SYS1') {
-          return 1
+          return schemeIds.SFI
         }
         if (sourceSystem === 'SYS2') {
-          return 6
+          return schemeIds.BPS
         }
         return null
       })
@@ -360,12 +360,12 @@ describe('Closure API Routes', () => {
       expect(existingBuilder.orWhere).toHaveBeenNthCalledWith(1, {
         frn: 1234567890,
         agreementNumber: 'AG12345',
-        schemeId: 10
+        schemeId: schemeIds.SFI
       })
       expect(existingBuilder.orWhere).toHaveBeenNthCalledWith(2, {
         frn: 9876543210,
         agreementNumber: 'AG67890',
-        schemeId: 20
+        schemeId: schemeIds.BPS
       })
 
       expect(insertBuilder.insert).toHaveBeenCalledTimes(1)
@@ -373,7 +373,7 @@ describe('Closure API Routes', () => {
         {
           frn: 1234567890,
           agreementNumber: 'AG12345',
-          schemeId: 1,
+          schemeId: schemeIds.SFI,
           endDate: '2024-11-30',
           addedBy,
           addedTime: expect.any(Date)
@@ -381,7 +381,7 @@ describe('Closure API Routes', () => {
         {
           frn: 9876543210,
           agreementNumber: 'AG67890',
-          schemeId: 6,
+          schemeId: schemeIds.BPS,
           endDate: '2025-01-15',
           addedBy,
           addedTime: expect.any(Date)
@@ -399,37 +399,50 @@ describe('Closure API Routes', () => {
       expect(createdClosures[1]).not.toHaveProperty('closureDate')
     })
 
-    test('should reject invalid FRN or minimum date before checking or writing the database', async () => {
-      getSchemeIdFromSourceSystem.mockReturnValue(1)
-      const invalidRows = [
-        {
-          frn: 123456789,
-          agreementNumber: 'AG12345',
-          sourceSystem: 'SYS1',
-          closureDate: '2024-11-30'
-        },
-        {
-          frn: 1234567890,
-          agreementNumber: 'AG67890',
-          sourceSystem: 'SYS1',
-          closureDate: '2021-12-31'
-        }
-      ]
-
+    test('should reject an invalid FRN before checking or writing the database', async () => {
+      getSchemeIdFromSourceSystem.mockReturnValue(schemeIds.SFI)
       const res = await server.inject({
         method: 'POST',
         url: '/closure/bulk',
-        payload: { data: invalidRows, addedBy: 'bulk-tester' }
+        payload: {
+          data: [{
+            frn: 123456789,
+            agreementNumber: 'AG12345',
+            sourceSystem: 'SYS1',
+            closureDate: '2024-11-30'
+          }],
+          addedBy: 'bulk-tester'
+        }
       })
 
       expect(res.statusCode).toBe(400)
-      expect(res.result.message).toMatch(/Row 1: FRN must be exactly 10 digits/)
-      expect(db.retentionData.findAll).not.toHaveBeenCalled()
-      expect(db.retentionData.bulkCreate).not.toHaveBeenCalled()
+      expect(res.result.message).toBe('Row 1: FRN must be exactly 10 digits')
+      expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
+    })
+
+    test('should reject an end date before the scheme minimum before checking or writing the database', async () => {
+      getSchemeIdFromSourceSystem.mockReturnValue(schemeIds.SFI)
+      const res = await server.inject({
+        method: 'POST',
+        url: '/closure/bulk',
+        payload: {
+          data: [{
+            frn: 1234567890,
+            agreementNumber: 'AG67890',
+            sourceSystem: 'SYS1',
+            closureDate: '2021-12-31'
+          }],
+          addedBy: 'bulk-tester'
+        }
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toBe('Row 1: End date 2021-12-31 is earlier than the minimum date 2022-01-01')
+      expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
     })
 
     test('should reject an invalid end date before checking or writing the database', async () => {
-      getSchemeIdFromSourceSystem.mockReturnValue(1)
+      getSchemeIdFromSourceSystem.mockReturnValue(schemeIds.SFI)
       const res = await server.inject({
         method: 'POST',
         url: '/closure/bulk',
@@ -446,8 +459,7 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(400)
       expect(res.result.message).toBe('Row 1: End date is invalid')
-      expect(db.retentionData.findAll).not.toHaveBeenCalled()
-      expect(db.retentionData.bulkCreate).not.toHaveBeenCalled()
+      expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
     })
 
     test('should return 400 and not check database or bulk create when duplicate rows exist in upload', async () => {
