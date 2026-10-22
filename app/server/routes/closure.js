@@ -3,12 +3,15 @@ const boom = require('@hapi/boom')
 const { retentionData } = require('../../database')
 const TABLES = require('../../constants/tables')
 const { getSchemeIdFromSourceSystem } = require('../../helpers/get-scheme-id-from-source-system')
+const { validatedDateForSchemeId } = require('../../helpers/normaliseValidationDates')
+const { isValidFrn } = require('../../helpers/is-valid-frn')
 const { createRetentionDataExtract } = require('../../extract/create-retention-data-extract')
 
 const ok = { statusCode: 200, message: 'ok' }
 const defaultPage = 1
 const minPageSize = 1
 const defaultPageSize = 2500
+const FRN_VALIDATION_MESSAGE = 'FRN must be exactly 10 digits'
 
 const schemeIdColumn = `${TABLES.retentionData}.schemeId`
 
@@ -132,6 +135,11 @@ module.exports = [
       },
       handler: async (request, h) => {
         const { frn, agreementNumber, schemeId, endDate, addedBy } = request.payload
+        const validationMessage = getClosureValidationMessage(frn, schemeId, endDate)
+
+        if (validationMessage) {
+          return boom.badRequest(validationMessage)
+        }
 
         await retentionData().insert({
           frn,
@@ -170,6 +178,13 @@ module.exports = [
           delete closure.closureDate
           return closure
         })
+
+        for (const closure of closures) {
+          const validationMessage = getClosureValidationMessage(closure.frn, closure.schemeId, closure.endDate)
+          if (validationMessage) {
+            return boom.badRequest(`Row ${closure.row}: ${validationMessage}`)
+          }
+        }
 
         const seen = new Set()
 
@@ -253,3 +268,28 @@ module.exports = [
     }
   }
 ]
+
+const getClosureValidationMessage = (frn, schemeId, endDate) => {
+  if (!isValidFrn(frn)) {
+    return FRN_VALIDATION_MESSAGE
+  }
+
+  const dateValidation = validatedDateForSchemeId(schemeId, endDate)
+  if (dateValidation.isValid) {
+    return null
+  }
+
+  if (dateValidation.reason === 'before-minimum-date') {
+    return `End date ${dateValidation.date} is earlier than the minimum date ${dateValidation.minimumDate}`
+  }
+
+  if (dateValidation.reason === 'no-scheme-end-date') {
+    return 'No minimum date is configured for the supplied scheme'
+  }
+
+  if (dateValidation.reason === 'unknown-scheme') {
+    return 'Scheme was not recognised for the supplied retention data'
+  }
+
+  return 'End date is invalid'
+}

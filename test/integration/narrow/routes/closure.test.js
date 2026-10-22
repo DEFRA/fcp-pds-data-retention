@@ -1,6 +1,6 @@
 const Hapi = require('@hapi/hapi')
 const { createKnexMock, createQueryBuilder } = require('../../../helpers/mock-knex')
-
+const schemeIds = require('../../../../app/constants/schemes')
 const mockDb = createKnexMock(['retentionData'])
 
 jest.mock('../../../../app/database', () => ({
@@ -324,10 +324,10 @@ describe('Closure API Routes', () => {
 
       getSchemeIdFromSourceSystem.mockImplementation((sourceSystem) => {
         if (sourceSystem === 'SYS1') {
-          return 10
+          return 1
         }
         if (sourceSystem === 'SYS2') {
-          return 20
+          return 6
         }
         return null
       })
@@ -373,7 +373,7 @@ describe('Closure API Routes', () => {
         {
           frn: 1234567890,
           agreementNumber: 'AG12345',
-          schemeId: 10,
+          schemeId: 1,
           endDate: '2024-11-30',
           addedBy,
           addedTime: expect.any(Date)
@@ -381,7 +381,7 @@ describe('Closure API Routes', () => {
         {
           frn: 9876543210,
           agreementNumber: 'AG67890',
-          schemeId: 20,
+          schemeId: 6,
           endDate: '2025-01-15',
           addedBy,
           addedTime: expect.any(Date)
@@ -397,6 +397,57 @@ describe('Closure API Routes', () => {
       expect(createdClosures[1]).not.toHaveProperty('row')
       expect(createdClosures[1]).not.toHaveProperty('sourceSystem')
       expect(createdClosures[1]).not.toHaveProperty('closureDate')
+    })
+
+    test('should reject invalid FRN or minimum date before checking or writing the database', async () => {
+      getSchemeIdFromSourceSystem.mockReturnValue(1)
+      const invalidRows = [
+        {
+          frn: 123456789,
+          agreementNumber: 'AG12345',
+          sourceSystem: 'SYS1',
+          closureDate: '2024-11-30'
+        },
+        {
+          frn: 1234567890,
+          agreementNumber: 'AG67890',
+          sourceSystem: 'SYS1',
+          closureDate: '2021-12-31'
+        }
+      ]
+
+      const res = await server.inject({
+        method: 'POST',
+        url: '/closure/bulk',
+        payload: { data: invalidRows, addedBy: 'bulk-tester' }
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toMatch(/Row 1: FRN must be exactly 10 digits/)
+      expect(db.retentionData.findAll).not.toHaveBeenCalled()
+      expect(db.retentionData.bulkCreate).not.toHaveBeenCalled()
+    })
+
+    test('should reject an invalid end date before checking or writing the database', async () => {
+      getSchemeIdFromSourceSystem.mockReturnValue(1)
+      const res = await server.inject({
+        method: 'POST',
+        url: '/closure/bulk',
+        payload: {
+          data: [{
+            frn: 1234567890,
+            agreementNumber: 'AG12345',
+            sourceSystem: 'SYS1',
+            closureDate: 'not-a-date'
+          }],
+          addedBy: 'bulk-tester'
+        }
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.result.message).toBe('Row 1: End date is invalid')
+      expect(db.retentionData.findAll).not.toHaveBeenCalled()
+      expect(db.retentionData.bulkCreate).not.toHaveBeenCalled()
     })
 
     test('should return 400 and not check database or bulk create when duplicate rows exist in upload', async () => {
@@ -415,7 +466,7 @@ describe('Closure API Routes', () => {
         }
       ]
 
-      getSchemeIdFromSourceSystem.mockReturnValue(10)
+      getSchemeIdFromSourceSystem.mockReturnValue(1)
 
       const res = await server.inject({
         method: 'POST',
@@ -456,10 +507,10 @@ describe('Closure API Routes', () => {
 
       getSchemeIdFromSourceSystem.mockImplementation((sourceSystem) => {
         if (sourceSystem === 'SYS1') {
-          return 10
+          return 1
         }
         if (sourceSystem === 'SYS2') {
-          return 20
+          return 6
         }
         return null
       })
@@ -468,7 +519,7 @@ describe('Closure API Routes', () => {
         {
           frn: 9876543210,
           agreementNumber: 'AG67890',
-          schemeId: 20
+          schemeId: 6
         }
       ])
 
@@ -517,13 +568,13 @@ describe('Closure API Routes', () => {
 
       getSchemeIdFromSourceSystem.mockImplementation((sourceSystem) => {
         if (sourceSystem === 'SYS1') {
-          return 10
+          return 1
         }
         if (sourceSystem === 'SYS2') {
-          return 20
+          return 6
         }
         if (sourceSystem === 'SYS3') {
-          return 30
+          return 12
         }
         return null
       })
@@ -532,12 +583,12 @@ describe('Closure API Routes', () => {
         {
           frn: 1111111111,
           agreementNumber: 'AG111',
-          schemeId: 10
+          schemeId: 1
         },
         {
           frn: 3333333333,
           agreementNumber: 'AG333',
-          schemeId: 30
+          schemeId: 12
         }
       ])
 
