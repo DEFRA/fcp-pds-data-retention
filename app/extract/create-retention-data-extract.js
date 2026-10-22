@@ -1,11 +1,13 @@
 const { PassThrough } = require('node:stream')
 const { once } = require('node:events')
 const { stringify } = require('csv-stringify')
-const db = require('../data')
+const { retentionData } = require('../database')
+const TABLES = require('../constants/tables')
 const { uploadStreamToBlob } = require('../storage')
 
 const batchSize = 5000
 const msAccuracy = 3
+const retentionDataIdColumn = `${TABLES.retentionData}.retentionDataId`
 
 const pad = (value, length = 2) => {
   return String(value).padStart(length, '0')
@@ -30,31 +32,20 @@ const getExtractFilename = () => {
 }
 
 const getRetentionDataBatch = async (lastRetentionDataId) => {
-  return db.retentionData.findAll({
-    include: [{
-      model: db.scheme,
-      as: 'scheme',
-      attributes: []
-    }],
-    attributes: [
-      'retentionDataId',
-      'frn',
-      [db.Sequelize.col('scheme.name'), 'schemeName'],
-      'agreementNumber',
-      'endDate',
-      'addedBy',
-      'addedTime'
-    ],
-    where: {
-      retentionDataId: {
-        [db.Sequelize.Op.gt]: lastRetentionDataId
-      }
-    },
-    order: [['retentionDataId', 'ASC']],
-    limit: batchSize,
-    raw: true,
-    subQuery: false
-  })
+  return retentionData()
+    .select(
+      retentionDataIdColumn,
+      `${TABLES.retentionData}.frn`,
+      { schemeName: `${TABLES.schemes}.name` },
+      `${TABLES.retentionData}.agreementNumber`,
+      `${TABLES.retentionData}.endDate`,
+      `${TABLES.retentionData}.addedBy`,
+      `${TABLES.retentionData}.addedTime`
+    )
+    .leftJoin(TABLES.schemes, `${TABLES.retentionData}.schemeId`, `${TABLES.schemes}.schemeId`)
+    .where(retentionDataIdColumn, '>', lastRetentionDataId)
+    .orderBy(retentionDataIdColumn, 'asc')
+    .limit(batchSize)
 }
 
 const writeRowsToCsv = async (csvStream, rows) => {

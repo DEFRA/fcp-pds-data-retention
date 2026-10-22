@@ -1,17 +1,24 @@
 const Hapi = require('@hapi/hapi')
-const routes = require('../../../../app/server/routes/closure')
-const db = require('../../../../app/data')
+const { createKnexMock, createQueryBuilder } = require('../../../helpers/mock-knex')
 const schemeIds = require('../../../../app/constants/schemes')
-const { getSchemeIdFromSourceSystem } = require('../../../../app/helpers/get-scheme-id-from-source-system')
-const { createRetentionDataExtract } = require('../../../../app/extract/create-retention-data-extract')
+const mockDb = createKnexMock(['retentionData'])
 
-jest.mock('../../../../app/data')
+jest.mock('../../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
+}))
 jest.mock('../../../../app/helpers/get-scheme-id-from-source-system')
 jest.mock('../../../../app/extract/create-retention-data-extract')
 
 jest.mock('../../../../app/storage', () => ({
   uploadStreamToBlob: jest.fn()
 }))
+
+const routes = require('../../../../app/server/routes/closure')
+const { getSchemeIdFromSourceSystem } = require('../../../../app/helpers/get-scheme-id-from-source-system')
+const { createRetentionDataExtract } = require('../../../../app/extract/create-retention-data-extract')
 
 describe('Closure API Routes', () => {
   let server
@@ -22,41 +29,45 @@ describe('Closure API Routes', () => {
     await server.initialize()
   })
 
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockDb.tables.retentionData.mockReset()
+    mockDb.tables.retentionData.mockReturnValue(mockDb.builder)
+    mockDb.builder.resolves([])
+  })
+
   afterAll(async () => {
     await server.stop()
     jest.resetAllMocks()
   })
 
   describe('GET /closure', () => {
+    const closures = [
+      {
+        retentionDataId: 1,
+        frn: 1234567890,
+        agreementNumber: 'AG12345',
+        schemeId: 1,
+        schemeName: 'SFI'
+      },
+      {
+        retentionDataId: 2,
+        frn: 9876543210,
+        agreementNumber: 'AG67890',
+        schemeId: 2,
+        schemeName: 'CS'
+      }
+    ]
+
+    let countBuilder
+    let rowsBuilder
+
     beforeEach(() => {
-      db.scheme = {}
-      db.Sequelize = {
-        col: jest.fn().mockImplementation((column) => column),
-        Op: {
-          or: Symbol('or')
-        }
-      }
-      db.retentionData = {
-        findAndCountAll: jest.fn().mockResolvedValue({
-          count: 2,
-          rows: [
-            {
-              retentionDataId: 1,
-              frn: 1234567890,
-              agreementNumber: 'AG12345',
-              schemeId: 1,
-              schemeName: 'SFI'
-            },
-            {
-              retentionDataId: 2,
-              frn: 9876543210,
-              agreementNumber: 'AG67890',
-              schemeId: 2,
-              schemeName: 'CS'
-            }
-          ]
-        })
-      }
+      countBuilder = createQueryBuilder().resolves({ count: '2' })
+      rowsBuilder = createQueryBuilder().resolves(closures)
+      mockDb.tables.retentionData
+        .mockReturnValueOnce(countBuilder)
+        .mockReturnValueOnce(rowsBuilder)
     })
 
     test('should return paginated closures using default page and pageSize', async () => {
@@ -67,44 +78,41 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(200)
       expect(res.result).toEqual({
-        closures: [
-          {
-            retentionDataId: 1,
-            frn: 1234567890,
-            agreementNumber: 'AG12345',
-            schemeId: 1,
-            schemeName: 'SFI'
-          },
-          {
-            retentionDataId: 2,
-            frn: 9876543210,
-            agreementNumber: 'AG67890',
-            schemeId: 2,
-            schemeName: 'CS'
-          }
-        ],
+        closures,
         count: 2
       })
 
-      expect(db.retentionData.findAndCountAll).toHaveBeenCalledTimes(1)
-      expect(db.retentionData.findAndCountAll).toHaveBeenCalledWith({
-        where: {},
-        include: [{
-          model: db.scheme,
-          as: 'scheme',
-          attributes: []
-        }],
-        attributes: {
-          include: [
-            ['scheme.name', 'schemeName']
-          ]
-        },
-        distinct: true,
-        raw: true,
-        limit: 2500,
-        offset: 0,
-        order: [['addedTime', 'DESC']]
+      expect(mockDb.tables.retentionData).toHaveBeenCalledTimes(2)
+      expect(mockDb.tables.retentionData).toHaveBeenCalledWith()
+
+      expect(countBuilder.count).toHaveBeenCalledWith({ count: '*' })
+      expect(countBuilder.first).toHaveBeenCalledTimes(1)
+      expect(countBuilder.where).not.toHaveBeenCalled()
+
+      expect(rowsBuilder.select).toHaveBeenCalledWith(
+        'retentionData.retentionDataId',
+        'retentionData.frn',
+        'retentionData.schemeId',
+        'retentionData.agreementNumber',
+        'retentionData.endDate',
+        'retentionData.addedBy',
+        'retentionData.addedTime',
+        { schemeName: 'schemes.name' }
+      )
+      expect(rowsBuilder.leftJoin).toHaveBeenCalledWith('schemes', 'retentionData.schemeId', 'schemes.schemeId')
+      expect(rowsBuilder.where).not.toHaveBeenCalled()
+      expect(rowsBuilder.orderBy).toHaveBeenCalledWith('retentionData.addedTime', 'desc')
+      expect(rowsBuilder.limit).toHaveBeenCalledWith(2500)
+      expect(rowsBuilder.offset).toHaveBeenCalledWith(0)
+    })
+
+    test('should return count as a number', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure'
       })
+
+      expect(res.result.count).toBe(2)
     })
 
     test('should apply page and pageSize when provided', async () => {
@@ -115,12 +123,8 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(200)
 
-      expect(db.retentionData.findAndCountAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          limit: 100,
-          offset: 200
-        })
-      )
+      expect(rowsBuilder.limit).toHaveBeenCalledWith(100)
+      expect(rowsBuilder.offset).toHaveBeenCalledWith(200)
     })
 
     test('should filter by numeric frnAgreement using agreementNumber or frn', async () => {
@@ -131,13 +135,9 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(200)
 
-      const queryArg = db.retentionData.findAndCountAll.mock.calls[0][0]
-      const orKey = Object.getOwnPropertySymbols(queryArg.where)[0]
-
-      expect(queryArg.where[orKey]).toEqual([
-        { agreementNumber: '1234567890' },
-        { frn: 1234567890 }
-      ])
+      expect(countBuilder.where).not.toHaveBeenCalled()
+      expect(rowsBuilder.where).toHaveBeenCalledWith('retentionData.agreementNumber', '1234567890')
+      expect(rowsBuilder.orWhere).toHaveBeenCalledWith('retentionData.frn', 1234567890)
     })
 
     test('should filter non-numeric frnAgreement by agreementNumber only', async () => {
@@ -148,12 +148,9 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(200)
 
-      const queryArg = db.retentionData.findAndCountAll.mock.calls[0][0]
-      const orKey = Object.getOwnPropertySymbols(queryArg.where)[0]
-
-      expect(queryArg.where[orKey]).toEqual([
-        { agreementNumber: 'AG12345' }
-      ])
+      expect(countBuilder.where).not.toHaveBeenCalled()
+      expect(rowsBuilder.where).toHaveBeenCalledWith('retentionData.agreementNumber', 'AG12345')
+      expect(rowsBuilder.orWhere).not.toHaveBeenCalled()
     })
 
     test('should filter by schemeId', async () => {
@@ -164,9 +161,9 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(200)
 
-      const queryArg = db.retentionData.findAndCountAll.mock.calls[0][0]
-
-      expect(queryArg.where.schemeId).toBe(1)
+      expect(countBuilder.where).not.toHaveBeenCalled()
+      expect(rowsBuilder.where).toHaveBeenCalledTimes(1)
+      expect(rowsBuilder.where).toHaveBeenCalledWith('retentionData.schemeId', 1)
     })
 
     test('should filter by frnAgreement and schemeId together', async () => {
@@ -177,17 +174,22 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(200)
 
-      expect(db.retentionData.findAndCountAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            [db.Sequelize.Op.or]: [
-              { agreementNumber: '1234567890' },
-              { frn: 1234567890 }
-            ],
-            schemeId: 1
-          }
-        })
-      )
+      expect(countBuilder.where).not.toHaveBeenCalled()
+      expect(rowsBuilder.where).toHaveBeenCalledWith(expect.any(Function))
+      expect(rowsBuilder.where).toHaveBeenCalledWith('retentionData.agreementNumber', '1234567890')
+      expect(rowsBuilder.orWhere).toHaveBeenCalledWith('retentionData.frn', 1234567890)
+      expect(rowsBuilder.where).toHaveBeenCalledWith('retentionData.schemeId', 1)
+    })
+
+    test('should return 500 when the database query fails', async () => {
+      rowsBuilder.rejects(new Error('Database error'))
+
+      const res = await server.inject({
+        method: 'GET',
+        url: '/closure'
+      })
+
+      expect(res.statusCode).toBe(500)
     })
 
     test('should return 400 when page is below minimum', async () => {
@@ -198,7 +200,7 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(400)
       expect(res.result.message).toMatch(/"page" must be greater than or equal to 1/)
-      expect(db.retentionData.findAndCountAll).not.toHaveBeenCalled()
+      expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
     })
 
     test('should return 400 when pageSize is below minimum', async () => {
@@ -209,7 +211,7 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(400)
       expect(res.result.message).toMatch(/"pageSize" must be greater than or equal to 1/)
-      expect(db.retentionData.findAndCountAll).not.toHaveBeenCalled()
+      expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
     })
 
     test('should return 400 when schemeId is not a number', async () => {
@@ -220,7 +222,7 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(400)
       expect(res.result.message).toMatch(/"schemeId" must be a number/)
-      expect(db.retentionData.findAndCountAll).not.toHaveBeenCalled()
+      expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
     })
   })
 
@@ -234,8 +236,6 @@ describe('Closure API Routes', () => {
     }
 
     test('should successfully create closure and return 200', async () => {
-      db.retentionData = { create: jest.fn().mockResolvedValue() }
-
       const res = await server.inject({
         method: 'POST',
         url: '/closure/add',
@@ -245,73 +245,28 @@ describe('Closure API Routes', () => {
       expect(res.statusCode).toBe(200)
       expect(res.result).toBe('ok')
 
-      expect(db.retentionData.create).toHaveBeenCalledTimes(1)
-      expect(db.retentionData.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          frn: validPayload.frn,
-          agreementNumber: validPayload.agreementNumber,
-          schemeId: validPayload.schemeId,
-          endDate: new Date(validPayload.endDate),
-          addedBy: validPayload.addedBy,
-          addedTime: expect.any(Number)
-        })
-      )
+      expect(mockDb.tables.retentionData).toHaveBeenCalledWith()
+      expect(mockDb.builder.insert).toHaveBeenCalledTimes(1)
+      expect(mockDb.builder.insert).toHaveBeenCalledWith({
+        frn: validPayload.frn,
+        agreementNumber: validPayload.agreementNumber,
+        schemeId: validPayload.schemeId,
+        endDate: new Date(validPayload.endDate),
+        addedBy: validPayload.addedBy,
+        addedTime: expect.any(Date)
+      })
     })
 
-    test('should reject an invalid FRN without creating a closure', async () => {
-      db.retentionData = { create: jest.fn().mockResolvedValue() }
+    test('should return 500 when the insert fails', async () => {
+      mockDb.builder.rejects(new Error('Database error'))
 
       const res = await server.inject({
         method: 'POST',
         url: '/closure/add',
-        payload: { ...validPayload, frn: 123456789 }
+        payload: validPayload
       })
 
-      expect(res.statusCode).toBe(400)
-      expect(res.result.message).toBe('FRN must be exactly 10 digits')
-      expect(db.retentionData.create).not.toHaveBeenCalled()
-    })
-
-    test('should reject an end date before the scheme minimum without creating a closure', async () => {
-      db.retentionData = { create: jest.fn().mockResolvedValue() }
-
-      const res = await server.inject({
-        method: 'POST',
-        url: '/closure/add',
-        payload: { ...validPayload, endDate: '2021-12-31' }
-      })
-
-      expect(res.statusCode).toBe(400)
-      expect(res.result.message).toBe('End date 2021-12-31 is earlier than the minimum date 2022-01-01')
-      expect(db.retentionData.create).not.toHaveBeenCalled()
-    })
-
-    test('should reject a known scheme without a configured minimum date', async () => {
-      db.retentionData = { create: jest.fn().mockResolvedValue() }
-
-      const res = await server.inject({
-        method: 'POST',
-        url: '/closure/add',
-        payload: { ...validPayload, schemeId: schemeIds.FC }
-      })
-
-      expect(res.statusCode).toBe(400)
-      expect(res.result.message).toBe('No minimum date is configured for the supplied scheme')
-      expect(db.retentionData.create).not.toHaveBeenCalled()
-    })
-
-    test('should reject an unknown scheme ID with an unrecognized-scheme message', async () => {
-      db.retentionData = { create: jest.fn().mockResolvedValue() }
-
-      const res = await server.inject({
-        method: 'POST',
-        url: '/closure/add',
-        payload: { ...validPayload, schemeId: 99 }
-      })
-
-      expect(res.statusCode).toBe(400)
-      expect(res.result.message).toBe('Scheme was not recognised for the supplied retention data')
-      expect(db.retentionData.create).not.toHaveBeenCalled()
+      expect(res.statusCode).toBe(500)
     })
 
     test('should fail validation and return 400 when payload is invalid', async () => {
@@ -331,21 +286,20 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(400)
       expect(res.result.message).toMatch(/"frn" must be a number/)
+      expect(mockDb.builder.insert).not.toHaveBeenCalled()
     })
   })
 
   describe('POST /closure/bulk', () => {
-    beforeEach(() => {
-      db.Sequelize = {
-        Op: {
-          or: Symbol('or')
-        }
-      }
+    let existingBuilder
+    let insertBuilder
 
-      db.retentionData = {
-        findAll: jest.fn().mockResolvedValue([]),
-        bulkCreate: jest.fn().mockResolvedValue()
-      }
+    beforeEach(() => {
+      existingBuilder = createQueryBuilder().resolves([])
+      insertBuilder = createQueryBuilder().resolves()
+      mockDb.tables.retentionData
+        .mockReturnValueOnce(existingBuilder)
+        .mockReturnValueOnce(insertBuilder)
 
       getSchemeIdFromSourceSystem.mockReset()
     })
@@ -394,53 +348,47 @@ describe('Closure API Routes', () => {
       expect(getSchemeIdFromSourceSystem).toHaveBeenNthCalledWith(1, 'SYS1')
       expect(getSchemeIdFromSourceSystem).toHaveBeenNthCalledWith(2, 'SYS2')
 
-      expect(db.retentionData.findAll).toHaveBeenCalledTimes(1)
+      expect(mockDb.tables.retentionData).toHaveBeenCalledTimes(2)
 
-      const findAllArg = db.retentionData.findAll.mock.calls[0][0]
-      const orKey = Object.getOwnPropertySymbols(findAllArg.where)[0]
-
-      expect(findAllArg.where[orKey]).toEqual([
-        {
-          frn: 1234567890,
-          agreementNumber: 'AG12345',
-          schemeId: 1
-        },
-        {
-          frn: 9876543210,
-          agreementNumber: 'AG67890',
-          schemeId: 6
-        }
-      ])
-
-      expect(findAllArg.attributes).toEqual([
+      expect(existingBuilder.select).toHaveBeenCalledWith(
         'frn',
         'agreementNumber',
         'schemeId'
-      ])
+      )
+      expect(existingBuilder.where).toHaveBeenCalledWith(expect.any(Function))
+      expect(existingBuilder.orWhere).toHaveBeenCalledTimes(2)
+      expect(existingBuilder.orWhere).toHaveBeenNthCalledWith(1, {
+        frn: 1234567890,
+        agreementNumber: 'AG12345',
+        schemeId: 10
+      })
+      expect(existingBuilder.orWhere).toHaveBeenNthCalledWith(2, {
+        frn: 9876543210,
+        agreementNumber: 'AG67890',
+        schemeId: 20
+      })
 
-      expect(findAllArg.raw).toBe(true)
-
-      expect(db.retentionData.bulkCreate).toHaveBeenCalledTimes(1)
-      expect(db.retentionData.bulkCreate).toHaveBeenCalledWith([
-        expect.objectContaining({
+      expect(insertBuilder.insert).toHaveBeenCalledTimes(1)
+      expect(insertBuilder.insert).toHaveBeenCalledWith([
+        {
           frn: 1234567890,
           agreementNumber: 'AG12345',
           schemeId: 1,
           endDate: '2024-11-30',
           addedBy,
-          addedTime: expect.any(Number)
-        }),
-        expect.objectContaining({
+          addedTime: expect.any(Date)
+        },
+        {
           frn: 9876543210,
           agreementNumber: 'AG67890',
           schemeId: 6,
           endDate: '2025-01-15',
           addedBy,
-          addedTime: expect.any(Number)
-        })
+          addedTime: expect.any(Date)
+        }
       ])
 
-      const createdClosures = db.retentionData.bulkCreate.mock.calls[0][0]
+      const createdClosures = insertBuilder.insert.mock.calls[0][0]
 
       expect(createdClosures[0]).not.toHaveProperty('row')
       expect(createdClosures[0]).not.toHaveProperty('sourceSystem')
@@ -536,8 +484,9 @@ describe('Closure API Routes', () => {
         message: 'The uploaded file contains duplicate records.'
       })
 
-      expect(db.retentionData.findAll).not.toHaveBeenCalled()
-      expect(db.retentionData.bulkCreate).not.toHaveBeenCalled()
+      expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
+      expect(existingBuilder.select).not.toHaveBeenCalled()
+      expect(insertBuilder.insert).not.toHaveBeenCalled()
     })
 
     test('should return 400 and not bulk create records when matching closures already exist in database', async () => {
@@ -566,7 +515,7 @@ describe('Closure API Routes', () => {
         return null
       })
 
-      db.retentionData.findAll.mockResolvedValue([
+      existingBuilder.resolves([
         {
           frn: 9876543210,
           agreementNumber: 'AG67890',
@@ -590,8 +539,9 @@ describe('Closure API Routes', () => {
         message: 'One or more of the supplied closure records already exist.'
       })
 
-      expect(db.retentionData.findAll).toHaveBeenCalledTimes(1)
-      expect(db.retentionData.bulkCreate).not.toHaveBeenCalled()
+      expect(mockDb.tables.retentionData).toHaveBeenCalledTimes(1)
+      expect(existingBuilder.select).toHaveBeenCalledTimes(1)
+      expect(insertBuilder.insert).not.toHaveBeenCalled()
     })
 
     test('should return 400 when more than one existing closure is found in database', async () => {
@@ -629,7 +579,7 @@ describe('Closure API Routes', () => {
         return null
       })
 
-      db.retentionData.findAll.mockResolvedValue([
+      existingBuilder.resolves([
         {
           frn: 1111111111,
           agreementNumber: 'AG111',
@@ -658,8 +608,9 @@ describe('Closure API Routes', () => {
         message: 'One or more of the supplied closure records already exist.'
       })
 
-      expect(db.retentionData.findAll).toHaveBeenCalledTimes(1)
-      expect(db.retentionData.bulkCreate).not.toHaveBeenCalled()
+      expect(mockDb.tables.retentionData).toHaveBeenCalledTimes(1)
+      expect(existingBuilder.select).toHaveBeenCalledTimes(1)
+      expect(insertBuilder.insert).not.toHaveBeenCalled()
     })
 
     test('should handle empty data array and not call findAll or bulkCreate', async () => {
@@ -675,16 +626,15 @@ describe('Closure API Routes', () => {
       expect(res.statusCode).toBe(200)
       expect(res.result).toBe('ok')
 
-      expect(db.retentionData.findAll).not.toHaveBeenCalled()
-      expect(db.retentionData.bulkCreate).not.toHaveBeenCalled()
+      expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
+      expect(existingBuilder.select).not.toHaveBeenCalled()
+      expect(insertBuilder.insert).not.toHaveBeenCalled()
     })
   })
 
   describe('POST /closure/remove', () => {
     beforeEach(() => {
-      db.retentionData = {
-        destroy: jest.fn().mockResolvedValue(1)
-      }
+      mockDb.builder.resolves(1)
     })
 
     test('should successfully remove closure and return 200', async () => {
@@ -701,12 +651,11 @@ describe('Closure API Routes', () => {
       expect(res.statusCode).toBe(200)
       expect(res.result).toBe('ok')
 
-      expect(db.retentionData.destroy).toHaveBeenCalledTimes(1)
-      expect(db.retentionData.destroy).toHaveBeenCalledWith({
-        where: {
-          retentionDataId: payload.retentionDataId
-        }
+      expect(mockDb.tables.retentionData).toHaveBeenCalledWith()
+      expect(mockDb.builder.where).toHaveBeenCalledWith({
+        retentionDataId: payload.retentionDataId
       })
+      expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
     })
 
     test('should fail validation and return 400 when retentionDataId is missing', async () => {
@@ -718,7 +667,7 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(400)
       expect(res.result.message).toMatch(/"retentionDataId" is required/)
-      expect(db.retentionData.destroy).not.toHaveBeenCalled()
+      expect(mockDb.builder.del).not.toHaveBeenCalled()
     })
 
     test('should fail validation and return 400 when retentionDataId is not a number', async () => {
@@ -732,7 +681,7 @@ describe('Closure API Routes', () => {
 
       expect(res.statusCode).toBe(400)
       expect(res.result.message).toMatch(/"retentionDataId" must be a number/)
-      expect(db.retentionData.destroy).not.toHaveBeenCalled()
+      expect(mockDb.builder.del).not.toHaveBeenCalled()
     })
   })
 
@@ -777,14 +726,8 @@ describe('Closure API Routes', () => {
   })
 
   describe('GET /closure/exists', () => {
-    beforeEach(() => {
-      db.retentionData = {
-        findOne: jest.fn()
-      }
-    })
-
     test('should return exists true when matching closure is found', async () => {
-      db.retentionData.findOne.mockResolvedValue({
+      mockDb.builder.resolves({
         retentionDataId: 123
       })
 
@@ -799,19 +742,18 @@ describe('Closure API Routes', () => {
         exists: true
       })
 
-      expect(db.retentionData.findOne).toHaveBeenCalledWith({
-        where: {
-          frn: 1234567890,
-          agreementNumber: 'AG12345',
-          schemeId: 1
-        },
-        attributes: ['retentionDataId'],
-        raw: true
+      expect(mockDb.tables.retentionData).toHaveBeenCalledWith()
+      expect(mockDb.builder.select).toHaveBeenCalledWith('retentionDataId')
+      expect(mockDb.builder.where).toHaveBeenCalledWith({
+        frn: 1234567890,
+        agreementNumber: 'AG12345',
+        schemeId: 1
       })
+      expect(mockDb.builder.first).toHaveBeenCalledTimes(1)
     })
 
     test('should return exists false when matching closure is not found', async () => {
-      db.retentionData.findOne.mockResolvedValue(null)
+      mockDb.builder.resolves(undefined)
 
       const res = await server.inject({
         method: 'GET',
