@@ -29,18 +29,17 @@ const normaliseValidationDate = (value) => {
 }
 
 const validatedDate = (scheme, value) => {
-  if (!Object.hasOwn(validationDates, scheme)) {
-    const reason = Object.hasOwn(schemes, scheme) ? 'no-scheme-end-date' : 'unknown-scheme'
-    return { isValid: false, reason, date: null, minimumDate: null }
+  if (!Object.hasOwn(schemes, scheme)) {
+    return { isValid: false, reason: 'unknown-scheme', date: null, minimumDate: null }
   }
 
-  const minimumDate = validationDates[scheme]
+  const minimumDate = validationDates[scheme] ?? null
   const date = normaliseValidationDate(value)
   if (!date) {
     return { isValid: false, reason: 'invalid-date', date: null, minimumDate }
   }
 
-  if (date < minimumDate) {
+  if (minimumDate && date < minimumDate) {
     return { isValid: false, reason: 'before-minimum-date', date, minimumDate }
   }
 

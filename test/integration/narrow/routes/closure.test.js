@@ -257,6 +257,21 @@ describe('Closure API Routes', () => {
       })
     })
 
+    test('should create closure when the scheme has no configured minimum date', async () => {
+      const payload = { ...validPayload, schemeId: schemeIds.FC }
+      const res = await server.inject({
+        method: 'POST',
+        url: '/closure/add',
+        payload
+      })
+
+      expect(res.statusCode).toBe(200)
+      expect(mockDb.builder.insert).toHaveBeenCalledWith(expect.objectContaining({
+        schemeId: schemeIds.FC,
+        endDate: new Date(payload.endDate)
+      }))
+    })
+
     test('should return 500 when the insert fails', async () => {
       mockDb.builder.rejects(new Error('Database error'))
 

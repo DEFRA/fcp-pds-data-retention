@@ -57,7 +57,7 @@ describe('validatedDate', () => {
     })
   })
 
-  test('reports an unknown scheme separately from a scheme without a date rule', () => {
+  test('reports an unknown scheme', () => {
     expect(validatedDate('UNKNOWN', '2024-12-31')).toEqual({
       isValid: false,
       reason: 'unknown-scheme',
@@ -66,19 +66,28 @@ describe('validatedDate', () => {
     })
   })
 
-  test('reports when a known scheme has no configured minimum date', () => {
+  test('accepts a known scheme with no configured minimum date', () => {
     expect(validatedDate('FC', '2024-12-31')).toEqual({
-      isValid: false,
-      reason: 'no-scheme-end-date',
-      date: null,
+      isValid: true,
+      reason: null,
+      date: '2024-12-31',
       minimumDate: null
     })
   })
 
-  test('recognises a known scheme ID without a configured minimum date', () => {
+  test('accepts a known scheme ID without a configured minimum date', () => {
     expect(validatedDateForSchemeId(schemes.FC, '2024-12-31')).toEqual({
+      isValid: true,
+      reason: null,
+      date: '2024-12-31',
+      minimumDate: null
+    })
+  })
+
+  test('rejects an invalid date for a known scheme without a configured minimum', () => {
+    expect(validatedDate('FC', 'not-a-date')).toEqual({
       isValid: false,
-      reason: 'no-scheme-end-date',
+      reason: 'invalid-date',
       date: null,
       minimumDate: null
     })
