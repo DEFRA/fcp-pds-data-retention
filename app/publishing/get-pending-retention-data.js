@@ -8,7 +8,7 @@ const publishingLimit = 1000
 const getPendingRetentionData = async () => {
   const retentionYearsAgo = new Date()
   retentionYearsAgo.setFullYear(retentionYearsAgo.getFullYear() - retentionYears)
-  const sitiAgriSchemes = processingConfig.sendSitiAgriRetention ? null : await getSitiAgriSchemeIds()
+  const sitiAgriSchemes = processingConfig.sendSitiAgriRetention ? null : getSitiAgriSchemeIds()
 
   return retentionData()
     .where('endDate', '<', retentionYearsAgo)

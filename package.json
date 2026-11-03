@@ -32,9 +32,9 @@
     "csv-stringify": "6.8.1",
     "ffc-database": "2.0.1",
     "ffc-pay-event-publisher": "2.0.1",
-    "ffc-pay-schemes": "1.1.1",
+    "ffc-pay-schemes": "1.1.5",
     "hapi-pino": "12.1.0",
-    "joi": "18.2.9",
+    "joi": "18.3.1",
     "log-timestamp": "0.3.0",
     "pg-copy-streams": "7.0.0",
     "unzipper": "0.12.5"
@@ -47,6 +47,11 @@
     "jest-junit": "17.0.0",
     "neostandard": "0.12.2",
     "nodemon": "3.0.1"
+  },
+  "overrides": {
+    "@azure/msal-node": "7.1.2",
+    "joi": "18.3.1",
+    "minimatch": "11.0.4"
   },
   "nodemonConfig": {
     "ignore": [

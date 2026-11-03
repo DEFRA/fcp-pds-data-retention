@@ -1,3 +1,5 @@
+const { getSitiAgriSchemeIds } = require('ffc-pay-schemes')
+const { processingConfig } = require('../config')
 const { retentionData } = require('../database')
 
 const saveValidRetentionData = async (validRetentionData) => {
@@ -5,7 +7,19 @@ const saveValidRetentionData = async (validRetentionData) => {
     return []
   }
 
-  const transformedData = validRetentionData.map(data => {
+  const sitiAgriSchemes = processingConfig.sendSitiAgriRetention ? null : getSitiAgriSchemeIds()
+
+  const filteredData = sitiAgriSchemes
+    ? validRetentionData.filter(({ schemeId }) =>
+      !sitiAgriSchemes.some(sitiSchemeId => Number(sitiSchemeId) === Number(schemeId))
+    )
+    : validRetentionData
+
+  if (filteredData.length === 0) {
+    return []
+  }
+
+  const transformedData = filteredData.map(data => {
     return {
       frn: Number(data.frn),
       schemeId: data.schemeId,
@@ -15,6 +29,7 @@ const saveValidRetentionData = async (validRetentionData) => {
       addedTime: new Date()
     }
   })
+
   return retentionData()
     .insert(transformedData)
     .onConflict(['frn', 'schemeId', 'agreementNumber'])

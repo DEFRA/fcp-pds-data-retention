@@ -8,14 +8,16 @@ jest.mock('../../../app/database', () => ({
   close: mockDb.close,
   ...mockDb.tables
 }))
+
 jest.mock('../../../app/config', () => ({
   ...jest.requireActual('../../../app/config'),
   processingConfig: {
     sendSitiAgriRetention: false
   }
 }))
+
 jest.mock('ffc-pay-schemes', () => ({
-  getSitiAgriSchemeIds: jest.fn().mockResolvedValue([1, 2, 3, 5, 6, 12, 13, 14, 15, 16, 19])
+  getSitiAgriSchemeIds: jest.fn(() => [1, 2, 3, 5, 6, 12, 13, 14, 15, 16, 19])
 }))
 
 const { processingConfig } = require('../../../app/config')
@@ -25,9 +27,9 @@ const { getPendingRetentionData } = require('../../../app/publishing/get-pending
 describe('getPendingRetentionData', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    getSitiAgriSchemeIds.mockImplementation(() => [1, 2, 3, 5, 6, 12, 13, 14, 15, 16, 19])
     mockDb.builder.resolves([])
     processingConfig.sendSitiAgriRetention = false
-    getSitiAgriSchemeIds.mockResolvedValue([1, 2, 3, 5, 6, 12, 13, 14, 15, 16, 19])
   })
 
   afterEach(() => {
@@ -98,7 +100,10 @@ describe('getPendingRetentionData', () => {
 
   test('should throw error when Siti Agri scheme lookup fails', async () => {
     const testError = new Error('Scheme lookup failed')
-    getSitiAgriSchemeIds.mockRejectedValue(testError)
+
+    getSitiAgriSchemeIds.mockImplementation(() => {
+      throw testError
+    })
 
     await expect(getPendingRetentionData()).rejects.toThrow('Scheme lookup failed')
     expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
