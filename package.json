@@ -11,6 +11,7 @@
     "test:lint": "eslint",
     "test:lint:fix": "eslint --fix",
     "test:debug": "node --inspect-brk=0.0.0.0 ./node_modules/jest/bin/jest.js --coverage=false --onlyChanged --watch --runInBand --no-cache",
+    "test:sonar": "./scripts/sonar",
     "start:watch": "nodemon --inspect=0.0.0.0 --ext js --legacy-watch app/index.js",
     "start:debug": "nodemon --inspect-brk=0.0.0.0 --ext js --legacy-watch app/index.js",
     "prepare": "node --eval \"const fs=require('fs'),cp=require('child_process');if(fs.existsSync('.git')&&!process.env.CI&&!process.env.TF_BUILD)cp.execSync('husky',{stdio:'inherit'})\""
