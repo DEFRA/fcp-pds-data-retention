@@ -24,18 +24,18 @@
   ],
   "license": "OGL-UK-3.0",
   "dependencies": {
-    "@azure/identity": "4.13.1",
+    "@azure/identity": "4.14.1",
     "@azure/monitor-opentelemetry": "1.20.0",
     "@azure/storage-blob": "12.31.0",
     "@hapi/boom": "10.0.1",
     "@hapi/hapi": "21.3.2",
     "csv-parser": "3.2.0",
     "csv-stringify": "6.8.1",
-    "ffc-database": "2.0.1",
-    "ffc-pay-event-publisher": "2.0.1",
+    "ffc-database": "2.0.2",
+    "ffc-pay-event-publisher": "2.0.2",
     "ffc-pay-schemes": "1.1.5",
     "hapi-pino": "12.1.0",
-    "joi": "18.3.1",
+    "joi": "18.3.2",
     "log-timestamp": "0.3.0",
     "pg-copy-streams": "7.0.0",
     "unzipper": "0.12.5"
@@ -51,7 +51,7 @@
   },
   "overrides": {
     "@azure/msal-node": "7.1.2",
-    "joi": "18.3.1"
+    "joi": "18.3.2"
   },
   "nodemonConfig": {
     "ignore": [
