@@ -37,7 +37,7 @@ services:
       - ./scripts:/scripts
 
   fcp-pds-data-retention-postgres:
-    image: postgres:11.4-alpine
+    image: postgres:16.5-alpine
     environment: *common-postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
