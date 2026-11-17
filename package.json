@@ -50,7 +50,7 @@
     "nodemon": "3.1.14"
   },
   "overrides": {
-    "@azure/msal-node": "7.1.2"
+    "joi": "18.3.1"
   },
   "nodemonConfig": {
     "ignore": [
