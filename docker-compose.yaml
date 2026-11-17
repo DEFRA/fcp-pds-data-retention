@@ -38,7 +38,7 @@ services:
       - pds
 
   fcp-pds-data-retention-postgres:
-    image: postgres:11.4-alpine
+    image: postgres:16.5-alpine
     environment:
       POSTGRES_DB: fcp_pds_data_retention
       POSTGRES_PASSWORD: ppp
