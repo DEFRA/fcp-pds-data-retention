@@ -1,6 +1,6 @@
 const joi = require('joi')
 const boom = require('@hapi/boom')
-const { retentionData } = require('../../database')
+const { client, retentionData } = require('../../database')
 const TABLES = require('../../constants/tables')
 const { getSchemeIdFromSourceSystem } = require('../../helpers/get-scheme-id-from-source-system')
 const { validatedDateForSchemeId } = require('../../helpers/normaliseValidationDates')
@@ -12,6 +12,9 @@ const defaultPage = 1
 const minPageSize = 1
 const defaultPageSize = 2500
 const FRN_VALIDATION_MESSAGE = 'FRN must be exactly 10 digits'
+
+const BULK_MAX_BYTES = 10 * 1024 * 1024
+const UNIQUE_VIOLATION = '23505'
 
 const schemeIdColumn = `${TABLES.retentionData}.schemeId`
 
@@ -158,31 +161,26 @@ module.exports = [
     method: 'POST',
     path: '/closure/bulk',
     options: {
+      payload: {
+        maxBytes: BULK_MAX_BYTES
+      },
       handler: async (request, h) => {
         const { data, addedBy } = request.payload
         const now = new Date()
 
-        const closures = data.map((closure, index) => {
-          const schemeId = getSchemeIdFromSourceSystem(closure.sourceSystem)
+        const closures = data.map(closure => ({
+          frn: closure.frn,
+          schemeId: getSchemeIdFromSourceSystem(closure.sourceSystem),
+          agreementNumber: closure.agreementNumber,
+          endDate: closure.closureDate,
+          addedBy,
+          addedTime: now
+        }))
 
-          return {
-            ...closure,
-            row: index + 1,
-            schemeId,
-            endDate: closure.closureDate,
-            addedBy,
-            addedTime: now
-          }
-        }).map((closure) => {
-          delete closure.sourceSystem
-          delete closure.closureDate
-          return closure
-        })
-
-        for (const closure of closures) {
+        for (const [index, closure] of closures.entries()) {
           const validationMessage = getClosureValidationMessage(closure.frn, closure.schemeId, closure.endDate)
           if (validationMessage) {
-            return boom.badRequest(`Row ${closure.row}: ${validationMessage}`)
+            return boom.badRequest(`Row ${index + 1}: ${validationMessage}`)
           }
         }
 
@@ -202,36 +200,14 @@ module.exports = [
           return h.response(ok.message).code(ok.statusCode)
         }
 
-        const existingClosures = await retentionData()
-          .select(
-            'frn',
-            'agreementNumber',
-            'schemeId'
-          )
-          .where(function () {
-            for (const closure of closures) {
-              this.orWhere({
-                frn: closure.frn,
-                agreementNumber: closure.agreementNumber,
-                schemeId: closure.schemeId
-              })
-            }
-          })
-
-        if (existingClosures.length) {
-          return boom.badRequest('One or more of the supplied closure records already exist.')
+        try {
+          await client.batchInsert(TABLES.retentionData, closures)
+        } catch (err) {
+          if (err.code === UNIQUE_VIOLATION) {
+            return boom.badRequest('One or more of the supplied closure records already exist.')
+          }
+          throw err
         }
-
-        await retentionData().insert(
-          closures.map(closure => ({
-            frn: closure.frn,
-            schemeId: closure.schemeId,
-            agreementNumber: closure.agreementNumber,
-            endDate: closure.endDate,
-            addedBy: closure.addedBy,
-            addedTime: closure.addedTime
-          }))
-        )
 
         return h.response(ok.message).code(ok.statusCode)
       }

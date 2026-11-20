@@ -2,6 +2,7 @@ const Hapi = require('@hapi/hapi')
 const { createKnexMock, createQueryBuilder } = require('../../../helpers/mock-knex')
 const schemeIds = require('../../../../app/constants/schemes')
 const mockDb = createKnexMock(['retentionData'])
+mockDb.knex.batchInsert = jest.fn()
 
 jest.mock('../../../../app/database', () => ({
   client: mockDb.knex,
@@ -306,37 +307,20 @@ describe('Closure API Routes', () => {
   })
 
   describe('POST /closure/bulk', () => {
-    let existingBuilder
-    let insertBuilder
+    const { batchInsert } = mockDb.knex
+    const postBulk = (data, addedBy = 'bulk-tester') => server.inject({
+      method: 'POST',
+      url: '/closure/bulk',
+      payload: { data, addedBy }
+    })
 
     beforeEach(() => {
-      existingBuilder = createQueryBuilder().resolves([])
-      insertBuilder = createQueryBuilder().resolves()
-      mockDb.tables.retentionData
-        .mockReturnValueOnce(existingBuilder)
-        .mockReturnValueOnce(insertBuilder)
-
+      batchInsert.mockReset()
+      batchInsert.mockResolvedValue([])
       getSchemeIdFromSourceSystem.mockReset()
     })
 
-    test('should process bulk closures, transform data, bulk create records and return 200', async () => {
-      const inputData = [
-        {
-          frn: 1234567890,
-          agreementNumber: 'AG12345',
-          sourceSystem: 'SYS1',
-          closureDate: '2024-11-30'
-        },
-        {
-          frn: 9876543210,
-          agreementNumber: 'AG67890',
-          sourceSystem: 'SYS2',
-          closureDate: '2025-01-15'
-        }
-      ]
-
-      const addedBy = 'bulk-tester'
-
+    test('should transform the closures and batch insert them into retentionData', async () => {
       getSchemeIdFromSourceSystem.mockImplementation((sourceSystem) => {
         if (sourceSystem === 'SYS1') {
           return schemeIds.SFI
@@ -347,50 +331,23 @@ describe('Closure API Routes', () => {
         return null
       })
 
-      const res = await server.inject({
-        method: 'POST',
-        url: '/closure/bulk',
-        payload: {
-          data: inputData,
-          addedBy
-        }
-      })
+      const res = await postBulk([
+        { frn: 1234567890, agreementNumber: 'AG12345', sourceSystem: 'SYS1', closureDate: '2024-11-30' },
+        { frn: 9876543210, agreementNumber: 'AG67890', sourceSystem: 'SYS2', closureDate: '2025-01-15' }
+      ])
 
       expect(res.statusCode).toBe(200)
       expect(res.result).toBe('ok')
-
-      expect(getSchemeIdFromSourceSystem).toHaveBeenCalledTimes(2)
       expect(getSchemeIdFromSourceSystem).toHaveBeenNthCalledWith(1, 'SYS1')
       expect(getSchemeIdFromSourceSystem).toHaveBeenNthCalledWith(2, 'SYS2')
-
-      expect(mockDb.tables.retentionData).toHaveBeenCalledTimes(2)
-
-      expect(existingBuilder.select).toHaveBeenCalledWith(
-        'frn',
-        'agreementNumber',
-        'schemeId'
-      )
-      expect(existingBuilder.where).toHaveBeenCalledWith(expect.any(Function))
-      expect(existingBuilder.orWhere).toHaveBeenCalledTimes(2)
-      expect(existingBuilder.orWhere).toHaveBeenNthCalledWith(1, {
-        frn: 1234567890,
-        agreementNumber: 'AG12345',
-        schemeId: schemeIds.SFI
-      })
-      expect(existingBuilder.orWhere).toHaveBeenNthCalledWith(2, {
-        frn: 9876543210,
-        agreementNumber: 'AG67890',
-        schemeId: schemeIds.BPS
-      })
-
-      expect(insertBuilder.insert).toHaveBeenCalledTimes(1)
-      expect(insertBuilder.insert).toHaveBeenCalledWith([
+      expect(batchInsert).toHaveBeenCalledTimes(1)
+      expect(batchInsert).toHaveBeenCalledWith('retentionData', [
         {
           frn: 1234567890,
           agreementNumber: 'AG12345',
           schemeId: schemeIds.SFI,
           endDate: '2024-11-30',
-          addedBy,
+          addedBy: 'bulk-tester',
           addedTime: expect.any(Date)
         },
         {
@@ -398,111 +355,67 @@ describe('Closure API Routes', () => {
           agreementNumber: 'AG67890',
           schemeId: schemeIds.BPS,
           endDate: '2025-01-15',
-          addedBy,
+          addedBy: 'bulk-tester',
           addedTime: expect.any(Date)
         }
       ])
-
-      const createdClosures = insertBuilder.insert.mock.calls[0][0]
-
-      expect(createdClosures[0]).not.toHaveProperty('row')
-      expect(createdClosures[0]).not.toHaveProperty('sourceSystem')
-      expect(createdClosures[0]).not.toHaveProperty('closureDate')
-
-      expect(createdClosures[1]).not.toHaveProperty('row')
-      expect(createdClosures[1]).not.toHaveProperty('sourceSystem')
-      expect(createdClosures[1]).not.toHaveProperty('closureDate')
-    })
-
-    test('should reject an invalid FRN before checking or writing the database', async () => {
-      getSchemeIdFromSourceSystem.mockReturnValue(schemeIds.SFI)
-      const res = await server.inject({
-        method: 'POST',
-        url: '/closure/bulk',
-        payload: {
-          data: [{
-            frn: 123456789,
-            agreementNumber: 'AG12345',
-            sourceSystem: 'SYS1',
-            closureDate: '2024-11-30'
-          }],
-          addedBy: 'bulk-tester'
-        }
-      })
-
-      expect(res.statusCode).toBe(400)
-      expect(res.result.message).toBe('Row 1: FRN must be exactly 10 digits')
       expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
     })
 
-    test('should reject an end date before the scheme minimum before checking or writing the database', async () => {
+    test.each([
+      ['an invalid FRN', { frn: 123456789, closureDate: '2024-11-30' }, 'Row 1: FRN must be exactly 10 digits'],
+      ['an end date before the scheme minimum', { frn: 1234567890, closureDate: '2021-12-31' }, 'Row 1: End date 2021-12-31 is earlier than the minimum date 2022-01-01'],
+      ['an invalid end date', { frn: 1234567890, closureDate: 'not-a-date' }, 'Row 1: End date is invalid']
+    ])('should reject %s without writing to the database', async (_description, row, message) => {
       getSchemeIdFromSourceSystem.mockReturnValue(schemeIds.SFI)
-      const res = await server.inject({
-        method: 'POST',
-        url: '/closure/bulk',
-        payload: {
-          data: [{
-            frn: 1234567890,
-            agreementNumber: 'AG67890',
-            sourceSystem: 'SYS1',
-            closureDate: '2021-12-31'
-          }],
-          addedBy: 'bulk-tester'
-        }
-      })
+
+      const res = await postBulk([{ agreementNumber: 'AG12345', sourceSystem: 'SYS1', ...row }])
 
       expect(res.statusCode).toBe(400)
-      expect(res.result.message).toBe('Row 1: End date 2021-12-31 is earlier than the minimum date 2022-01-01')
-      expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
+      expect(res.result.message).toBe(message)
+      expect(batchInsert).not.toHaveBeenCalled()
     })
 
-    test('should reject an invalid end date before checking or writing the database', async () => {
+    test('should report the row number of the first invalid row', async () => {
       getSchemeIdFromSourceSystem.mockReturnValue(schemeIds.SFI)
-      const res = await server.inject({
-        method: 'POST',
-        url: '/closure/bulk',
-        payload: {
-          data: [{
-            frn: 1234567890,
-            agreementNumber: 'AG12345',
-            sourceSystem: 'SYS1',
-            closureDate: 'not-a-date'
-          }],
-          addedBy: 'bulk-tester'
-        }
-      })
+
+      const res = await postBulk([
+        { frn: 1234567890, agreementNumber: 'AG1', sourceSystem: 'SYS1', closureDate: '2024-11-30' },
+        { frn: 123, agreementNumber: 'AG2', sourceSystem: 'SYS1', closureDate: '2024-11-30' }
+      ])
 
       expect(res.statusCode).toBe(400)
-      expect(res.result.message).toBe('Row 1: End date is invalid')
-      expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
+      expect(res.result.message).toBe('Row 2: FRN must be exactly 10 digits')
     })
 
-    test('should return 400 and not check database or bulk create when duplicate rows exist in upload', async () => {
-      const inputData = [
-        {
-          frn: 1234567890,
-          agreementNumber: 'AG12345',
-          sourceSystem: 'SYS1',
-          closureDate: '2024-11-30'
-        },
-        {
-          frn: 1234567890,
-          agreementNumber: 'AG12345',
-          sourceSystem: 'SYS1',
-          closureDate: '2024-12-31'
-        }
-      ]
+    test('should accept a payload larger than 1MB and pass every row to a single batch insert', async () => {
+      const rowCount = 11000
+      const data = Array.from({ length: rowCount }, (_, i) => ({
+        frn: 1000000000 + i,
+        agreementNumber: `IMPS-AGREEMENT-NUMBER-${String(i).padStart(10, '0')}`,
+        sourceSystem: 'SYS1',
+        closureDate: '2024-11-30'
+      }))
+      expect(Buffer.byteLength(JSON.stringify({ data, addedBy: 'bulk-tester' }))).toBeGreaterThan(1024 * 1024)
+      getSchemeIdFromSourceSystem.mockReturnValue(schemeIds.SFI)
 
-      getSchemeIdFromSourceSystem.mockReturnValue(1)
+      const res = await postBulk(data)
 
-      const res = await server.inject({
-        method: 'POST',
-        url: '/closure/bulk',
-        payload: {
-          data: inputData,
-          addedBy: 'bulk-tester'
-        }
-      })
+      expect(res.statusCode).toBe(200)
+      expect(batchInsert).toHaveBeenCalledTimes(1)
+      const [table, rows] = batchInsert.mock.calls[0]
+      expect(table).toBe('retentionData')
+      expect(rows).toHaveLength(rowCount)
+      expect(rows[rowCount - 1].frn).toBe(1000000000 + rowCount - 1)
+    })
+
+    test('should return 400 without writing to the database when the upload contains duplicate rows', async () => {
+      getSchemeIdFromSourceSystem.mockReturnValue(schemeIds.SFI)
+
+      const res = await postBulk([
+        { frn: 1234567890, agreementNumber: 'AG12345', sourceSystem: 'SYS1', closureDate: '2024-11-30' },
+        { frn: 1234567890, agreementNumber: 'AG12345', sourceSystem: 'SYS1', closureDate: '2024-12-31' }
+      ])
 
       expect(res.statusCode).toBe(400)
       expect(res.result).toEqual({
@@ -510,54 +423,16 @@ describe('Closure API Routes', () => {
         error: 'Bad Request',
         message: 'The uploaded file contains duplicate records.'
       })
-
-      expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
-      expect(existingBuilder.select).not.toHaveBeenCalled()
-      expect(insertBuilder.insert).not.toHaveBeenCalled()
+      expect(batchInsert).not.toHaveBeenCalled()
     })
 
-    test('should return 400 and not bulk create records when matching closures already exist in database', async () => {
-      const inputData = [
-        {
-          frn: 1234567890,
-          agreementNumber: 'AG12345',
-          sourceSystem: 'SYS1',
-          closureDate: '2024-11-30'
-        },
-        {
-          frn: 9876543210,
-          agreementNumber: 'AG67890',
-          sourceSystem: 'SYS2',
-          closureDate: '2025-01-15'
-        }
-      ]
+    test('should return 400 when a closure already exists in the database (unique constraint violation)', async () => {
+      getSchemeIdFromSourceSystem.mockReturnValue(schemeIds.SFI)
+      batchInsert.mockRejectedValue(Object.assign(new Error('duplicate key value violates unique constraint'), { code: '23505' }))
 
-      getSchemeIdFromSourceSystem.mockImplementation((sourceSystem) => {
-        if (sourceSystem === 'SYS1') {
-          return 1
-        }
-        if (sourceSystem === 'SYS2') {
-          return 6
-        }
-        return null
-      })
-
-      existingBuilder.resolves([
-        {
-          frn: 9876543210,
-          agreementNumber: 'AG67890',
-          schemeId: 6
-        }
+      const res = await postBulk([
+        { frn: 1234567890, agreementNumber: 'AG12345', sourceSystem: 'SYS1', closureDate: '2024-11-30' }
       ])
-
-      const res = await server.inject({
-        method: 'POST',
-        url: '/closure/bulk',
-        payload: {
-          data: inputData,
-          addedBy: 'bulk-tester'
-        }
-      })
 
       expect(res.statusCode).toBe(400)
       expect(res.result).toEqual({
@@ -565,97 +440,25 @@ describe('Closure API Routes', () => {
         error: 'Bad Request',
         message: 'One or more of the supplied closure records already exist.'
       })
-
-      expect(mockDb.tables.retentionData).toHaveBeenCalledTimes(1)
-      expect(existingBuilder.select).toHaveBeenCalledTimes(1)
-      expect(insertBuilder.insert).not.toHaveBeenCalled()
     })
 
-    test('should return 400 when more than one existing closure is found in database', async () => {
-      const inputData = [
-        {
-          frn: 1111111111,
-          agreementNumber: 'AG111',
-          sourceSystem: 'SYS1',
-          closureDate: '2024-11-30'
-        },
-        {
-          frn: 2222222222,
-          agreementNumber: 'AG222',
-          sourceSystem: 'SYS2',
-          closureDate: '2025-01-15'
-        },
-        {
-          frn: 3333333333,
-          agreementNumber: 'AG333',
-          sourceSystem: 'SYS3',
-          closureDate: '2025-02-01'
-        }
-      ]
+    test('should return 500 for any other database error', async () => {
+      getSchemeIdFromSourceSystem.mockReturnValue(schemeIds.SFI)
+      batchInsert.mockRejectedValue(Object.assign(new Error('value too long for type character varying(50)'), { code: '22001' }))
 
-      getSchemeIdFromSourceSystem.mockImplementation((sourceSystem) => {
-        if (sourceSystem === 'SYS1') {
-          return 1
-        }
-        if (sourceSystem === 'SYS2') {
-          return 6
-        }
-        if (sourceSystem === 'SYS3') {
-          return 12
-        }
-        return null
-      })
-
-      existingBuilder.resolves([
-        {
-          frn: 1111111111,
-          agreementNumber: 'AG111',
-          schemeId: 1
-        },
-        {
-          frn: 3333333333,
-          agreementNumber: 'AG333',
-          schemeId: 12
-        }
+      const res = await postBulk([
+        { frn: 1234567890, agreementNumber: 'AG12345', sourceSystem: 'SYS1', closureDate: '2024-11-30' }
       ])
 
-      const res = await server.inject({
-        method: 'POST',
-        url: '/closure/bulk',
-        payload: {
-          data: inputData,
-          addedBy: 'bulk-tester'
-        }
-      })
-
-      expect(res.statusCode).toBe(400)
-      expect(res.result).toEqual({
-        statusCode: 400,
-        error: 'Bad Request',
-        message: 'One or more of the supplied closure records already exist.'
-      })
-
-      expect(mockDb.tables.retentionData).toHaveBeenCalledTimes(1)
-      expect(existingBuilder.select).toHaveBeenCalledTimes(1)
-      expect(insertBuilder.insert).not.toHaveBeenCalled()
+      expect(res.statusCode).toBe(500)
     })
 
-    test('should handle empty data array and not call findAll or bulkCreate', async () => {
-      const res = await server.inject({
-        method: 'POST',
-        url: '/closure/bulk',
-        payload: {
-          data: [],
-          addedBy: 'tester'
-        }
-      })
+    test('should return 200 without writing to the database for an empty upload', async () => {
+      const res = await postBulk([], 'tester')
 
       expect(res.statusCode).toBe(200)
       expect(res.result).toBe('ok')
-
-      expect(mockDb.tables.retentionData).not.toHaveBeenCalled()
-      expect(existingBuilder.select).not.toHaveBeenCalled()
-      expect(insertBuilder.insert).not.toHaveBeenCalled()
+      expect(batchInsert).not.toHaveBeenCalled()
     })
   })
 
