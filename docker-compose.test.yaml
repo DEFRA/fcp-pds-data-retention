@@ -25,7 +25,7 @@ services:
       MESSAGE_QUEUE_HOST: fcp-pds-data-retention-servicebus-emulator
       MESSAGE_QUEUE_USER: RootManageSharedAccessKey
       MESSAGE_QUEUE_PASSWORD: SAS_KEY_VALUE
-      ALERT_TOPIC_ADDRESS: ffc-doc-alerting-test
+      ALERT_TOPIC_ADDRESS: ffc-pay-alert-test
       RETENTION_TOPIC_ADDRESS: fcp-pds-data-retention-test
       NODE_ENV: test
 

@@ -6,7 +6,7 @@
         "Queues": [],
         "Topics": [
           {
-            "Name": "ffc-doc-alerting",
+            "Name": "ffc-pay-alert",
             "Properties": {
               "DefaultMessageTimeToLive": "PT1H",
               "DuplicateDetectionHistoryTimeWindow": "PT20S",
@@ -22,7 +22,7 @@
             }
           }
         ]
-      } 
+      }
     ],
     "Logging": {
       "Type": "File"
