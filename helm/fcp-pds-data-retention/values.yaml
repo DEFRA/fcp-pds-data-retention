@@ -39,7 +39,7 @@ container:
   azureStorageUseConnectionString: false
   azureStorageAccountName: fcppds
   messageQueueHost: namespace.servicebus.windows.net
-  alertTopicAddress: ffc-doc-alerting
+  alertTopicAddress: ffc-pay-alert
   retentionTopicAddress: fcp-pds-data-retention
   azureLogLevel: error
 

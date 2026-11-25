@@ -10,7 +10,7 @@ resources:
         requiresDuplicateDetection: true
         roles: 
         - name: sender
-      - name: ffc-doc-alerting
+      - name: ffc-pay-alert
         defaultMessageTimeToLive: P3650D
         duplicateDetectionHistoryTimeWindow: PT10M30S
         requiresDuplicateDetection: true
